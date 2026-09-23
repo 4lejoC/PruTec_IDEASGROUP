@@ -1,0 +1,37 @@
+# ===== Secretos / entorno =====
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+
+# ===== Archivos personales de la prueba (no publicar) =====
+*.pdf
+CHECKLIST.md
+
+# ===== .NET / Visual Studio =====
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userprefs
+TestResults/
+*.log
+
+# ===== Angular / Node =====
+node_modules/
+dist/
+.angular/
+coverage/
+npm-debug.log*
+
+# ===== IDEs / SO =====
+.vscode/*
+!.vscode/extensions.json
+.idea/
+Thumbs.db
+.DS_Store
+
+# ===== PowerDesigner (temporales) =====
+*.bak
+*.tmp
