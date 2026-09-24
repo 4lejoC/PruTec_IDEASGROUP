@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+using System.Reflection;
 using DotNetEnv;
 using GestionTareas.Api.Data;
+using GestionTareas.Api.Handlers;
 using GestionTareas.Api.Repositories;
 using GestionTareas.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -45,11 +48,33 @@ builder.Services.AddCors(options =>
         .AllowAnyHeader()
         .AllowAnyMethod()));
 
-builder.Services.AddControllers();
+// Enums en JSON como texto ("EnCurso") en lugar de números: más legible para el frontend.
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Manejo centralizado de errores -> respuestas ProblemDetails (400/404/409/500).
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new()
+    {
+        Title = "Gestión de Tareas API",
+        Version = "v1",
+        Description = "API REST para administrar proyectos y sus tareas."
+    });
+
+    // Muestra en Swagger los comentarios /// <summary> de controllers y DTOs.
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFile));
+});
 
 var app = builder.Build();
+
+// Primero en el pipeline para capturar las excepciones de todo lo que viene después.
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {

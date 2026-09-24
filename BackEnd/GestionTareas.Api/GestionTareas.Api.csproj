@@ -4,6 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Genera el XML con los comentarios /// para mostrarlos en Swagger -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591: no exigir comentario XML en cada miembro público -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
