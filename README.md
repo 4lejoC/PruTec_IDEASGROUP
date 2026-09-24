@@ -35,7 +35,7 @@ Módulo inicial de una plataforma de gestión de trabajo.
 | Proveedor EF | Npgsql.EntityFrameworkCore.PostgreSQL 8 |
 | Configuración | Variables de entorno (archivo `.env` cargado con DotNetEnv) |
 | Documentación API | Swagger / OpenAPI (Swashbuckle) |
-| Pruebas backend | xUnit + Moq *(pendiente)* |
+| Pruebas backend | xUnit + Moq |
 | Modelado de datos | SAP PowerDesigner (modelos conceptual, lógico y físico) |
 
 ---
@@ -65,7 +65,7 @@ PruTec_IDEASGROUP/
 │   │   │   ├── Converters/      ← conversión de enums a texto
 │   │   │   └── Migrations/      ← migraciones incrementales generadas por EF
 │   │   └── Program.cs
-│   └── GestionTareas.Tests/     ← pruebas unitarias (pendiente)
+│   └── GestionTareas.Tests/     ← pruebas unitarias (xUnit + Moq)
 ├── FrontEnd/                    ← aplicación Angular (pendiente)
 └── Database/
     ├── diagramas/               ← imágenes de los modelos
@@ -358,9 +358,34 @@ _Se documentará al implementar el frontend._
 
 ---
 
-## Pruebas automatizadas *(pendiente)*
+## Pruebas automatizadas
 
-_Se documentará al implementar las pruebas del backend y del frontend._
+### Backend (xUnit + Moq)
+
+Pruebas unitarias sobre las reglas de negocio de los services. Los repositorios se reemplazan
+por *mocks* (Moq), por lo que **no requieren base de datos** ni Docker.
+
+**Ejecutar**
+
+- **Visual Studio:** *Test → Run All Tests* (Test Explorer).
+- **Consola:**
+  ```bash
+  dotnet test BackEnd/GestionTareas.Tests
+  ```
+
+| Clase | Prueba | Verifica |
+|---|---|---|
+| `ProyectoServiceTests` | `EliminarAsync_ProyectoConTareas_LanzaConflictoYNoElimina` | Regla: no se elimina un proyecto con tareas |
+| `ProyectoServiceTests` | `EliminarAsync_ProyectoSinTareas_EliminaUnaVez` | Un proyecto sin tareas sí se elimina |
+| `ProyectoServiceTests` | `CrearAsync_FechaFinAnteriorAInicio_LanzaValidacionYNoGuarda` | La fecha de fin no puede ser anterior a la de inicio |
+| `ProyectoServiceTests` | `CrearAsync_SinEstado_CreaComoPlanificado` | Estado por defecto y limpieza del nombre |
+| `ProyectoServiceTests` | `ObtenerPorIdAsync_ProyectoInexistente_LanzaNoEncontrado` | Un código inexistente produce "no encontrado" |
+| `TareaServiceTests` | `CrearAsync_ProyectoInexistente_LanzaNoEncontradoYNoGuarda` | Toda tarea debe pertenecer a un proyecto existente |
+| `TareaServiceTests` | `CrearAsync_SinEstadoNiPrioridad_AsignaPendienteYMedia` | Valores por defecto de la tarea |
+
+### Frontend *(pendiente)*
+
+_Se documentará al implementar el frontend._
 
 ---
 
