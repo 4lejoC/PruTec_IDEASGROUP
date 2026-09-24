@@ -1,6 +1,7 @@
 using DotNetEnv;
 using GestionTareas.Api.Data;
 using GestionTareas.Api.Repositories;
+using GestionTareas.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 // ---------------------------------------------------------------------------
@@ -29,6 +30,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Capa Repository (Scoped: una instancia por petición HTTP, igual que el DbContext)
 builder.Services.AddScoped<IProyectoRepository, ProyectoRepository>();
+
+// Capa Service
+builder.Services.AddScoped<IProyectoService, ProyectoService>();
 
 // CORS: orígenes permitidos desde la variable Cors__AllowedOrigins (separados por coma).
 const string CorsPolicy = "Frontend";
