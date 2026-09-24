@@ -33,6 +33,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Capa Repository (Scoped: una instancia por petición HTTP, igual que el DbContext)
 builder.Services.AddScoped<IProyectoRepository, ProyectoRepository>();
+builder.Services.AddScoped<ITareaRepository, TareaRepository>();
 
 // Capa Service
 builder.Services.AddScoped<IProyectoService, ProyectoService>();
