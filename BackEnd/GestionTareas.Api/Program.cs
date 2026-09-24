@@ -1,4 +1,6 @@
 using DotNetEnv;
+using GestionTareas.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 // ---------------------------------------------------------------------------
 // Configuración externa
@@ -20,6 +22,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "Falta la variable de entorno 'ConnectionStrings__DefaultConnection'. " +
         "Copia .env.example como .env en la raíz del repositorio y completa los valores.");
 }
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // CORS: orígenes permitidos desde la variable Cors__AllowedOrigins (separados por coma).
 const string CorsPolicy = "Frontend";
