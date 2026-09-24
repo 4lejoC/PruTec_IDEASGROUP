@@ -35,3 +35,9 @@ Thumbs.db
 # ===== PowerDesigner (temporales) =====
 *.bak
 *.tmp
+
+# ===== PowerDesigner (respaldos y workspace local) =====
+*.cdb
+*.ldb
+*.pdb
+*.sws
