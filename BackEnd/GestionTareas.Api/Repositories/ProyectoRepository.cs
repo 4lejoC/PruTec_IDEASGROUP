@@ -16,8 +16,8 @@ public class ProyectoRepository(AppDbContext context) : IProyectoRepository
         {
             // ILIKE = coincidencia parcial sin distinguir mayúsculas, resuelto en PostgreSQL.
             // Se escapan % y _ para que se busquen como texto literal y no como comodines.
-            var patron = $"%{EscaparComodines(nombre.Trim())}%";
-            query = query.Where(p => EF.Functions.ILike(p.Nombre, patron, "\\"));
+            var patron = PatronBusqueda.Contiene(nombre);
+            query = query.Where(p => EF.Functions.ILike(p.Nombre, patron, PatronBusqueda.Escape));
         }
 
         // Dos consultas: COUNT(*) para el total y SELECT ... LIMIT/OFFSET para la página.
@@ -60,7 +60,4 @@ public class ProyectoRepository(AppDbContext context) : IProyectoRepository
         context.Proyectos.Remove(proyecto);
         await context.SaveChangesAsync(ct);
     }
-
-    private static string EscaparComodines(string texto) =>
-        texto.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }
