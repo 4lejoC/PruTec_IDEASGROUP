@@ -7,6 +7,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<Proyecto> Proyectos => Set<Proyecto>();
 
+    public DbSet<Tarea> Tareas => Set<Tarea>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Las PK se generan como SERIAL, igual que en el modelo físico

@@ -25,4 +25,7 @@ public class Proyecto
 
     /// <summary>Nula mientras el proyecto no haya sido editado.</summary>
     public DateTime? FechaActualizacion { get; set; }
+
+    /// <summary>Tareas del proyecto (relación 1 a 0..N).</summary>
+    public ICollection<Tarea> Tareas { get; set; } = new List<Tarea>();
 }
