@@ -1,5 +1,6 @@
 using DotNetEnv;
 using GestionTareas.Api.Data;
+using GestionTareas.Api.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 // ---------------------------------------------------------------------------
@@ -25,6 +26,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+// Capa Repository (Scoped: una instancia por petición HTTP, igual que el DbContext)
+builder.Services.AddScoped<IProyectoRepository, ProyectoRepository>();
 
 // CORS: orígenes permitidos desde la variable Cors__AllowedOrigins (separados por coma).
 const string CorsPolicy = "Frontend";
