@@ -260,9 +260,15 @@ Documentación interactiva completa en **Swagger**: `http://localhost:5257/swagg
 | PUT | `/api/proyectos/{id}` | Actualizar proyecto | 200, 400, 404 |
 | DELETE | `/api/proyectos/{id}` | Eliminar proyecto (no permitido si tiene tareas) | 204, 404, **409** |
 
-### Tareas *(pendiente)*
+### Tareas
 
-_Se documentará al implementar el módulo de tareas._
+| Método | Ruta | Descripción | Respuestas |
+|---|---|---|---|
+| GET | `/api/proyectos/{proyectoId}/tareas?texto=&estado=&prioridad=&page=1&pageSize=10` | Listado paginado de tareas del proyecto, con búsqueda por texto y filtros por estado y prioridad (opcionales) | 200, 400, 404 |
+| POST | `/api/proyectos/{proyectoId}/tareas` | Crear tarea en el proyecto | 201, 400, 404 |
+| GET | `/api/tareas/{id}` | Obtener una tarea | 200, 404 |
+| PUT | `/api/tareas/{id}` | Actualizar tarea | 200, 400, 404 |
+| DELETE | `/api/tareas/{id}` | Eliminar tarea | 204, 404 |
 
 ### Formato de errores
 
@@ -344,6 +350,11 @@ _Se documentará al implementar el frontend._
 | Eliminación | Física; bloqueada si el proyecto tiene tareas (HTTP 409) |
 | Formato de enums en JSON | Texto (`"EnCurso"`), no números |
 | Fechas de negocio | Solo fecha (sin hora) |
+| Estado y prioridad iniciales de una tarea | `PENDIENTE` y `MEDIA` si no se envían |
+| Cambio de proyecto de una tarea | No permitido: una tarea siempre pertenece al proyecto donde se creó |
+| Orden del listado de tareas | De la más reciente a la más antigua |
+| Búsqueda de tareas por texto | Coincidencia parcial en título **o** descripción |
+| Rutas de tareas | Listar y crear dentro del proyecto (`/api/proyectos/{id}/tareas`); obtener, editar y eliminar por código (`/api/tareas/{id}`) |
 
 ---
 
