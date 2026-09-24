@@ -37,6 +37,7 @@ builder.Services.AddScoped<ITareaRepository, TareaRepository>();
 
 // Capa Service
 builder.Services.AddScoped<IProyectoService, ProyectoService>();
+builder.Services.AddScoped<ITareaService, TareaService>();
 
 // CORS: orígenes permitidos desde la variable Cors__AllowedOrigins (separados por coma).
 const string CorsPolicy = "Frontend";
