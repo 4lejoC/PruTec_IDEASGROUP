@@ -72,9 +72,9 @@ PruTec_IDEASGROUP/
 │   └── src/
 │       ├── styles/              ← sistema de diseño (tokens, vidrio, tema Material, badges)
 │       └── app/
-│           ├── proyectos/       ← modelo, servicio HTTP y páginas de proyectos
-│           ├── tareas/          ← modelo, servicio HTTP y páginas de tareas
-│           └── shared/          ← interceptor de errores, configuración de la API, utilidades
+│           ├── proyectos/       ← modelo, servicio HTTP, formulario y página de proyectos
+│           ├── tareas/          ← modelo, servicio HTTP, formulario y página de tareas
+│           └── shared/          ← componentes reutilizables, interceptor, validadores, servicios comunes
 └── Database/
     ├── diagramas/               ← imágenes de los modelos
     └── powerdesigner/           ← archivos fuente .cdm / .ldm / .pdm
@@ -388,6 +388,27 @@ Los errores de validación (400) incluyen además un diccionario `errors` con lo
   - Tema de Angular Material con una paleta propia (ciruela) y tipografía *Plus Jakarta Sans*.
   - Un único patrón de etiqueta (*badge*) para estados y prioridades.
   - Accesibilidad: foco visible con teclado y animaciones desactivadas si el sistema lo solicita.
+- **Modo claro / oscuro** (paleta oscura "Ciruela nocturna"): el tema se aplica con un atributo en `<html>` y
+  solo redefine los tokens. Recuerda la elección del usuario, respeta la preferencia del sistema si no eligió,
+  y se aplica antes de que cargue Angular para evitar parpadeos.
+- **Navegación en contexto:** las tareas siempre pertenecen a un proyecto (igual que la API), por lo que no hay
+  una sección global de tareas. Se accede desde cada proyecto (`/proyectos/:id/tareas`) y se vuelve con migas
+  de navegación o el botón volver.
+- **Estado de los listados en la URL** (`?nombre=&page=&pageSize=` en proyectos; `?texto=&estado=&prioridad=&page=&pageSize=`
+  en tareas): al volver de las tareas, recargar o compartir el enlace se conservan filtros y paginación.
+  La URL se actualiza con `Location.replaceState` para no generar navegaciones ni llenar el historial.
+- **Componentes reutilizables** en `shared/`: etiqueta de estado/prioridad, estado vacío, estado de carga
+  (esqueletos), estado de error con reintento, diálogo de confirmación y notificaciones.
+- **Formularios reactivos en diálogos** para crear y editar. Solo validan y devuelven los datos; la página que
+  los abre decide qué hacer (separación entre presentación y acceso a datos). Validaciones: obligatorios, sin
+  textos de solo espacios, longitudes máximas con contador y **validador propio de rango de fechas** (fin ≥ inicio),
+  que replica la regla del backend.
+- **Filtros de tareas** (opcionales del enunciado): búsqueda por texto en título o descripción, y filtros por estado
+  y prioridad combinables. Las búsquedas esperan 300 ms sin escribir (*debounce*) antes de consultar.
+- **Fechas y textos en español** (`es-EC`); las fechas se convierten a `YYYY-MM-DD` sin pasar por UTC para
+  evitar que se corran un día por la zona horaria.
+- **Animaciones:** revelado circular al cambiar de tema, fundido entre páginas, entrada escalonada de filas,
+  y microinteracciones en botones y filtros. Todas duran menos de 0,7 s.
 
 ---
 
@@ -403,6 +424,9 @@ Los errores de validación (400) incluyen además un diccionario `errors` con lo
 | Eliminación | Física; bloqueada si el proyecto tiene tareas (HTTP 409) |
 | Formato de enums en JSON | Texto (`"EnCurso"`), no números |
 | Fechas de negocio | Solo fecha (sin hora) |
+| Filtros y paginación en la interfaz | Se guardan en la URL para conservarlos al navegar, recargar o compartir |
+| Tamaños de página en la interfaz | 5 (por defecto), 10 y 20 |
+| Tema visual | Claro u oscuro a elección del usuario; por defecto, el del sistema operativo |
 | Estado y prioridad iniciales de una tarea | `PENDIENTE` y `MEDIA` si no se envían |
 | Cambio de proyecto de una tarea | No permitido: una tarea siempre pertenece al proyecto donde se creó |
 | Orden del listado de tareas | De la más reciente a la más antigua |
@@ -449,9 +473,7 @@ que en el trabajo diario:
 
 | Área | Uso |
 |---|---|
-| Planificación | Lectura del requerimiento y armado de un checklist por etapas |
-| Modelado de datos | Revisión de los modelos conceptual, lógico y físico en PowerDesigner (cardinalidades, tipos, restricciones) |
-| Backend | Generación de código base de entidades, configuración de EF, repositorios, services, controllers, manejo de errores y pruebas unitarias |
+| Backend | Generación de código base de entidades, configuración de EF, manejo de errores y pruebas unitarias |
 | Frontend | Generación de código base de modelos, servicios HTTP, interceptor, configuración por `.env` y sistema de diseño; propuestas de paletas de color |
 | Documentación | Redacción de este README y de los comentarios XML de Swagger |
 
