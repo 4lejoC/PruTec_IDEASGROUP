@@ -27,8 +27,9 @@ Módulo inicial de una plataforma de gestión de trabajo.
 
 | Componente | Tecnología |
 |---|---|
-| Frontend | Angular 17, TypeScript, SCSS *(pendiente)* |
-| Librería de componentes | Por definir |
+| Frontend | Angular 17.3 (componentes standalone), TypeScript, SCSS |
+| Librería de componentes | **Angular Material 17** con tema propio (paleta "Lavanda y ciruela", estilo glassmorphism) |
+| Configuración frontend | Archivo `.env` leído al compilar con **@ngx-env/builder** |
 | Backend | .NET 8, C#, ASP.NET Core Web API (controllers) |
 | Persistencia | Entity Framework Core 8 con migraciones incrementales |
 | Base de datos | PostgreSQL 16 (Docker) |
@@ -66,7 +67,14 @@ PruTec_IDEASGROUP/
 │   │   │   └── Migrations/      ← migraciones incrementales generadas por EF
 │   │   └── Program.cs
 │   └── GestionTareas.Tests/     ← pruebas unitarias (xUnit + Moq)
-├── FrontEnd/                    ← aplicación Angular (pendiente)
+├── FrontEnd/                    ← aplicación Angular
+│   ├── .env.example             ← plantilla de configuración del frontend
+│   └── src/
+│       ├── styles/              ← sistema de diseño (tokens, vidrio, tema Material, badges)
+│       └── app/
+│           ├── proyectos/       ← modelo, servicio HTTP y páginas de proyectos
+│           ├── tareas/          ← modelo, servicio HTTP y páginas de tareas
+│           └── shared/          ← interceptor de errores, configuración de la API, utilidades
 └── Database/
     ├── diagramas/               ← imágenes de los modelos
     └── powerdesigner/           ← archivos fuente .cdm / .ldm / .pdm
@@ -81,8 +89,12 @@ PruTec_IDEASGROUP/
 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) | reciente | Base de datos PostgreSQL |
 | [.NET SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | **8.0.x** | Backend |
 | Visual Studio 2026 **o** herramienta `dotnet-ef` | — | Aplicar migraciones |
-| [Node.js](https://nodejs.org/) | 18.13+ o 20.x LTS | Frontend *(pendiente)* |
-| Angular CLI | 17 | Frontend *(pendiente)* |
+| [Node.js](https://nodejs.org/) | **22 LTS** (probado con 22.18.0) | Frontend |
+| npm | incluido con Node.js | Frontend |
+
+> Angular 17 declara soporte oficial para Node 18/20. El proyecto se desarrolló y verificó en
+> **Node 22** (desarrollo, build y pruebas), versión indicada para la evaluación.
+> No es necesario instalar Angular CLI de forma global: se usa la versión local del proyecto.
 
 ---
 
@@ -158,9 +170,22 @@ dotnet run --project BackEnd/GestionTareas.Api --launch-profile http
 La API queda en `http://localhost:5257` y la documentación Swagger en
 **http://localhost:5257/swagger**.
 
-### 6. Ejecutar el frontend *(pendiente)*
+### 6. Ejecutar el frontend
 
-_Se documentará al implementar el frontend._
+Con el backend en ejecución:
+
+```bash
+cd FrontEnd
+
+# Configuración (solo la primera vez)
+Copy-Item .env.example .env      # Windows (PowerShell)
+cp .env.example .env             # Linux / macOS
+
+npm install
+npm start
+```
+
+La aplicación queda en **http://localhost:4200**.
 
 ### Reiniciar la base de datos desde cero
 
@@ -197,9 +222,20 @@ Todas se definen en el archivo `.env` de la raíz (no versionado). La plantilla 
 - Si una variable ya existe en el sistema, tiene prioridad sobre el valor del `.env`.
 - Si falta la cadena de conexión, la API se detiene al iniciar con un mensaje indicando cómo configurarla.
 
-### Frontend *(pendiente)*
+### Frontend (Angular)
 
-_Se documentará al implementar el frontend (archivos `environment.ts`)._
+Se definen en `FrontEnd/.env` (no versionado). La plantilla es `FrontEnd/.env.example`.
+
+| Variable | Descripción | Ejemplo |
+|---|---|---|
+| `NG_APP_API_URL` | URL base de la API del backend | `http://localhost:5257/api` |
+
+- `@ngx-env/builder` lee el archivo `.env` al compilar y expone las variables con prefijo `NG_APP_`
+  mediante `import.meta.env`. Solo se leen en `shared/api.config.ts`: ningún componente ni servicio
+  tiene direcciones escritas a mano.
+- Estos valores quedan incluidos en el JavaScript que recibe el navegador, por lo que **nunca deben
+  contener secretos** (solo URLs y configuración pública).
+- Si la variable no está definida, la aplicación muestra un error indicando cómo configurarla.
 
 ---
 
@@ -332,9 +368,26 @@ Los errores de validación (400) incluyen además un diccionario `errors` con lo
   se versiona. `DotNetEnv` carga el mismo `.env` que usa Docker, de modo que la contraseña se define una sola vez.
 - **Fechas:** `DateOnly` → `date` para fechas de negocio; `DateTime` en UTC → `timestamp with time zone` para auditoría.
 
-### Frontend *(pendiente)*
+### Frontend
 
-_Se documentará al implementar el frontend._
+- **Estructura por funcionalidad:** cada módulo (`proyectos/`, `tareas/`) agrupa su modelo, su servicio
+  HTTP y sus páginas; `shared/` contiene lo transversal. Para encontrar algo de tareas, se busca en `tareas/`.
+- **Servicios dedicados a HTTP** (`ProyectoService`, `TareaService`) con los métodos GET, POST, PUT y DELETE.
+  Los componentes no usan `HttpClient` directamente.
+- **Interceptor de errores:** convierte cualquier error HTTP (ProblemDetails del backend, errores de validación
+  o servidor caído) en un `ApiError` con un mensaje listo para mostrar. Los componentes no interpretan códigos HTTP.
+- **Modelos tipados** que reflejan los DTOs del backend; estados y prioridades como tipos literales
+  (`'EnCurso' | 'Pausado' ...`), así TypeScript detecta valores inválidos.
+- **Configuración por `.env`** con `@ngx-env/builder`, para usar el mismo mecanismo que el backend.
+- **Componentes standalone y carga diferida** (lazy loading) de las páginas.
+- **Sistema de diseño propio** (`src/styles/`) para evitar el aspecto genérico de Material:
+  - *Tokens* como variables CSS (colores, estados, prioridades, radios, sombras, espaciado): un solo lugar para cambiar el estilo.
+  - *Glassmorphism* sin degradados: fondo de un solo color con formas geométricas sólidas detrás de superficies
+    translúcidas con desenfoque. Diálogos y menús usan vidrio más opaco para asegurar legibilidad, y hay un fondo
+    alternativo para navegadores sin `backdrop-filter`.
+  - Tema de Angular Material con una paleta propia (ciruela) y tipografía *Plus Jakarta Sans*.
+  - Un único patrón de etiqueta (*badge*) para estados y prioridades.
+  - Accesibilidad: foco visible con teclado y animaciones desactivadas si el sistema lo solicita.
 
 ---
 
@@ -398,9 +451,12 @@ que en el trabajo diario:
 |---|---|
 | Planificación | Lectura del requerimiento y armado de un checklist por etapas |
 | Modelado de datos | Revisión de los modelos conceptual, lógico y físico en PowerDesigner (cardinalidades, tipos, restricciones) |
-| Backend | Generación de código base de entidades, configuración de EF, repositorios, services, controllers y manejo de errores |
+| Backend | Generación de código base de entidades, configuración de EF, repositorios, services, controllers, manejo de errores y pruebas unitarias |
+| Frontend | Generación de código base de modelos, servicios HTTP, interceptor, configuración por `.env` y sistema de diseño; propuestas de paletas de color |
 | Documentación | Redacción de este README y de los comentarios XML de Swagger |
 
 Todas las decisiones fueron revisadas y validadas por el autor, y varias se tomaron en contra de la
 sugerencia inicial del asistente (por ejemplo: un solo proyecto de API en lugar de uno por capa,
-mantener el formato de solución `.slnx`, y **no** aplicar migraciones automáticamente al iniciar).
+mantener el formato de solución `.slnx`, **no** aplicar migraciones automáticamente al iniciar,
+estructura del frontend por funcionalidad, configuración con `.env` en lugar de archivos `environment`,
+y la elección de la paleta de colores).
