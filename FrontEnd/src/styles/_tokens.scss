@@ -30,6 +30,9 @@
   --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --glass-blur: 24px;
   --color-line: rgba(34, 26, 46, 0.08);            // separadores internos
+  --row-hover: rgba(255, 255, 255, 0.45);          // fila de tabla bajo el cursor
+  --overlay-backdrop: rgba(34, 26, 46, 0.22);      // velo detrás de los diálogos
+  --scrollbar: rgba(75, 42, 107, 0.2);
 
   // ----- Estados de proyecto
   --estado-planificado: #7a5cc2;
@@ -49,6 +52,10 @@
   --prioridad-media: #2f6fbf;
   --prioridad-alta: #c56a1b;
   --prioridad-critica: #c2413b;
+
+  // ----- Badges (fondo sobre el que se tiñe el color del estado)
+  --badge-base: white;
+  --badge-mix: 12%;
 
   // ----- Feedback
   --color-success: #1f8a6a;
@@ -82,4 +89,66 @@
   --toolbar-height: 64px;
 
   --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  color-scheme: light;
+}
+
+// =============================================================================
+// Modo oscuro — paleta "Ciruela nocturna".
+// Solo se redefinen los valores; los componentes no cambian porque usan tokens.
+// En oscuro el color principal pasa a lavanda clara (la ciruela no tendría contraste)
+// y los colores de estado se aclaran para mantener la legibilidad.
+// =============================================================================
+:root[data-tema='oscuro'] {
+  --color-bg: #17121f;
+  --color-text: #f1ecf8;
+  --color-text-muted: #a79cb8;
+  --color-text-subtle: #7d7290;
+
+  --color-primary: #c4b0ee;
+  --color-primary-hover: #d3c3f4;
+  --color-on-primary: #1c1428;
+  --color-primary-soft: rgba(196, 176, 238, 0.12);
+
+  --shape-lavanda: #4b2a6b;
+  --shape-durazno: #b8664a;
+  --shape-menta: #2f7d68;
+
+  --glass-bg: rgba(255, 255, 255, 0.07);
+  --glass-bg-hover: rgba(255, 255, 255, 0.1);
+  --glass-bg-strong: rgba(30, 23, 40, 0.85);
+  --glass-bg-fallback: rgba(30, 23, 40, 0.96);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --color-line: rgba(255, 255, 255, 0.08);
+  --row-hover: rgba(255, 255, 255, 0.04);
+  --overlay-backdrop: rgba(8, 5, 12, 0.5);
+  --scrollbar: rgba(196, 176, 238, 0.2);
+
+  --estado-planificado: #b39cf0;
+  --estado-en-curso: #7fb2f0;
+  --estado-pausado: #e8b45a;
+  --estado-finalizado: #6fd3b0;
+  --estado-cancelado: #f08a84;
+
+  --estado-pendiente: #b39cf0;
+  --estado-en-progreso: #7fb2f0;
+  --estado-bloqueada: #f08a84;
+  --estado-completada: #6fd3b0;
+
+  --prioridad-baja: #a0a4b0;
+  --prioridad-media: #7fb2f0;
+  --prioridad-alta: #f0a45a;
+  --prioridad-critica: #f08a84;
+
+  --badge-base: transparent;
+  --badge-mix: 16%;
+
+  --color-success: #6fd3b0;
+  --color-danger: #f08a84;
+
+  --shadow-glass: 0 14px 34px rgba(0, 0, 0, 0.45);
+  --shadow-button: 0 6px 16px rgba(196, 176, 238, 0.25);
+
+  color-scheme: dark;
 }

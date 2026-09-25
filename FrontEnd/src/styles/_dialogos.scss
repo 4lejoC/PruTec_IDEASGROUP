@@ -1,0 +1,75 @@
+// =============================================================================
+// Estructura común de los diálogos (confirmación y formularios).
+// =============================================================================
+.dialogo-cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-5) 0;
+
+  .mat-mdc-dialog-title {
+    padding: 0;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+
+    &::before { display: none; }
+  }
+
+  &__icono {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    color: var(--color-primary);
+    background: var(--color-primary-soft);
+  }
+
+  &--peligro &__icono {
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  }
+}
+
+.dialogo-mensaje {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+// Formularios dentro de diálogos: una columna, fechas lado a lado.
+.dialogo-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+
+  .mat-mdc-form-field { width: 100%; }
+
+  &__fila {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+
+    @media (max-width: 520px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Punto de color para opciones de estado / prioridad en los select.
+.punto-color {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: var(--space-2);
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.mat-mdc-dialog-actions {
+  padding: var(--space-3) var(--space-5) var(--space-5) !important;
+  gap: var(--space-2);
+}

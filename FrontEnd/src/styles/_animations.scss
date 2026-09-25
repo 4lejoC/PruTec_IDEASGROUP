@@ -1,0 +1,94 @@
+// =============================================================================
+// Animaciones de la aplicación. Todas son cortas (< 700 ms), usan la misma curva
+// y se desactivan si el sistema del usuario pide reducir el movimiento.
+// =============================================================================
+$curva: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+// ----- Entrada de elementos: suben y aparecen
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.aparecer {
+  animation: aparecer 480ms $curva both;
+}
+
+// Lista escalonada: cada hijo entra un poco después del anterior.
+// Uso: <div class="aparecer-escalonado"><div style="--i: 0">…</div><div style="--i: 1">…</div></div>
+.aparecer-escalonado > * {
+  animation: aparecer 480ms $curva both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+// ----- Barra superior: baja al cargar la aplicación
+@keyframes bajar {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ----- Íconos que giran al cambiar (sol / luna)
+@keyframes girar-entrar {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+  to   { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+.girar-entrar {
+  animation: girar-entrar 420ms $curva both;
+}
+
+// ----- Transición entre páginas (View Transitions API + withViewTransitions del router)
+// Fundido cruzado corto de toda la vista: la barra superior es igual en ambas
+// páginas, así que solo se percibe el cambio del contenido. El movimiento lo
+// aportan las animaciones de entrada (.aparecer) de cada página.
+//
+// Importante: NO se asigna view-transition-name al contenedor de las páginas.
+// Ese atributo lo convierte en "backdrop root" y el vidrio de las secciones
+// dejaría de desenfocar las formas del fondo (solo vería lo que hay dentro
+// del contenedor).
+::view-transition-old(root) {
+  animation: 160ms ease-out both desvanecer;
+}
+
+::view-transition-new(root) {
+  animation: 220ms ease-in both aparecer-fundido;
+}
+
+@keyframes desvanecer {
+  to { opacity: 0; }
+}
+
+@keyframes aparecer-fundido {
+  from { opacity: 0; }
+}
+
+// ----- Cambio de tema: el nuevo tema se revela en un círculo que crece
+// desde el botón de modo oscuro. (--vt-x / --vt-y los define TemaService.)
+@keyframes revelar-tema {
+  from { clip-path: circle(0 at var(--vt-x, 100%) var(--vt-y, 0)); }
+  to   { clip-path: circle(150vmax at var(--vt-x, 100%) var(--vt-y, 0)); }
+}
+
+html.transicion-tema {
+  &::view-transition-old(root) {
+    animation: none;
+  }
+
+  &::view-transition-new(root) {
+    animation: revelar-tema 650ms $curva;
+  }
+}
+
+// ----- Accesibilidad: sin animaciones si el usuario lo pidió en su sistema
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}

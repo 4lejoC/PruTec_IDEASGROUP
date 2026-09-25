@@ -14,12 +14,20 @@
       <span class="marca__texto">{{ titulo }}</span>
     </a>
 
-    <nav class="navegacion" aria-label="Navegación principal">
-      <a class="navegacion__link" routerLink="/proyectos" routerLinkActive="navegacion__link--activo">
-        <mat-icon>folder_open</mat-icon>
-        Proyectos
-      </a>
-    </nav>
+    <div class="toolbar__acciones">
+      <button
+        mat-icon-button
+        class="boton-tema"
+        (click)="temaService.alternar($event)"
+        [attr.aria-label]="temaService.tema() === 'claro' ? 'Activar modo oscuro' : 'Activar modo claro'"
+        [attr.title]="temaService.tema() === 'claro' ? 'Modo oscuro' : 'Modo claro'">
+        @if (temaService.tema() === 'claro') {
+          <mat-icon class="girar-entrar">dark_mode</mat-icon>
+        } @else {
+          <mat-icon class="girar-entrar">light_mode</mat-icon>
+        }
+      </button>
+    </div>
   </div>
 </header>
 

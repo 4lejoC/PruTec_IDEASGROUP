@@ -57,6 +57,20 @@ $tema: mat.define-light-theme((
 @include mat.all-component-themes($tema);
 @include mat.typography-hierarchy($tipografia);
 
+// Modo oscuro: solo cambian los colores de Material (tipografía y densidad se mantienen).
+// El primario pasa al tono 200 de la paleta (lavanda clara) para tener contraste.
+$primario-oscuro: mat.define-palette($paleta-ciruela, 200, 100, 300);
+$acento-oscuro: mat.define-palette(mat.$teal-palette, 200, 100, 300);
+$advertencia-oscuro: mat.define-palette(mat.$red-palette, 300);
+
+$tema-oscuro: mat.define-dark-theme((
+  color: (primary: $primario-oscuro, accent: $acento-oscuro, warn: $advertencia-oscuro)
+));
+
+:root[data-tema='oscuro'] {
+  @include mat.all-component-colors($tema-oscuro);
+}
+
 // ----- Ajustes de Material al estilo glass --------------------------------
 
 // Tablas y paginador transparentes: toman el vidrio del panel que los contiene.
@@ -82,7 +96,7 @@ $tema: mat.define-light-theme((
   transition: background var(--transition-fast);
 
   &:hover {
-    background: rgba(255, 255, 255, 0.45);
+    background: var(--row-hover);
   }
 }
 
@@ -113,7 +127,7 @@ $tema: mat.define-light-theme((
 
 // Fondo detrás de los diálogos: velo ciruela suave con desenfoque.
 .cdk-overlay-dark-backdrop {
-  background: rgba(34, 26, 46, 0.22);
+  background: var(--overlay-backdrop);
   backdrop-filter: blur(3px);
 }
 
