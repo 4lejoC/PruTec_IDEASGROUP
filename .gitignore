@@ -1,3 +1,6 @@
+# Único .gitignore del repositorio (backend, frontend, base de datos).
+# Los patrones sin "/" inicial aplican en cualquier carpeta.
+
 # ===== Secretos / entorno =====
 .env
 .env.*
@@ -21,22 +24,33 @@ TestResults/
 # ===== Angular / Node =====
 node_modules/
 dist/
+out-tsc/
 .angular/
 coverage/
+.sass-cache/
 npm-debug.log*
+yarn-error.log
+testem.log
 
-# ===== IDEs / SO =====
+# ===== Editores =====
+# VS Code: se versionan extensions/launch/tasks del frontend; settings.json es personal.
+**/.vscode/settings.json
 .vscode/*
 !.vscode/extensions.json
+.history/
 .idea/
+.project
+.classpath
+.settings/
+*.sublime-workspace
+
+# ===== Sistema operativo =====
 Thumbs.db
 .DS_Store
 
-# ===== PowerDesigner (temporales) =====
+# ===== PowerDesigner (temporales, respaldos y workspace local) =====
 *.bak
 *.tmp
-
-# ===== PowerDesigner (respaldos y workspace local) =====
 *.cdb
 *.ldb
 *.pdb
