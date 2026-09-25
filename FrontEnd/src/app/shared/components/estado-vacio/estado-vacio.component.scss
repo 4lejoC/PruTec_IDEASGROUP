@@ -1,0 +1,45 @@
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-7) var(--space-5);
+
+  &__icono {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-md);
+    color: var(--color-primary);
+    background: var(--color-primary-soft);
+    animation: flotar-icono 3.5s ease-in-out infinite alternate;
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  &__titulo {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  &__texto {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+  }
+
+  &__accion:not(:empty) {
+    margin-top: var(--space-5);
+  }
+}
+
+@keyframes flotar-icono {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-6px); }
+}

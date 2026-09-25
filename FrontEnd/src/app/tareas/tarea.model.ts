@@ -1,22 +1,26 @@
+import { BadgeInfo } from '../shared/components/badge/badge.component';
+
+/** Estados y prioridades tal como los envía la API (enum como texto). */
 export type EstadoTarea = 'Pendiente' | 'EnProgreso' | 'Bloqueada' | 'Completada';
 export type PrioridadTarea = 'Baja' | 'Media' | 'Alta' | 'Critica';
 
-export const ESTADO_TAREA_LABELS: Record<EstadoTarea, string> = {
-  Pendiente: 'Pendiente',
-  EnProgreso: 'En progreso',
-  Bloqueada: 'Bloqueada',
-  Completada: 'Completada'
+/** Texto y color (token CSS) de cada valor para mostrarlo en pantalla. */
+export const ESTADO_TAREA_UI: Record<EstadoTarea, BadgeInfo> = {
+  Pendiente: { texto: 'Pendiente', color: 'var(--estado-pendiente)' },
+  EnProgreso: { texto: 'En progreso', color: 'var(--estado-en-progreso)' },
+  Bloqueada: { texto: 'Bloqueada', color: 'var(--estado-bloqueada)' },
+  Completada: { texto: 'Completada', color: 'var(--estado-completada)' }
 };
 
-export const PRIORIDAD_TAREA_LABELS: Record<PrioridadTarea, string> = {
-  Baja: 'Baja',
-  Media: 'Media',
-  Alta: 'Alta',
-  Critica: 'Crítica'
+export const PRIORIDAD_TAREA_UI: Record<PrioridadTarea, BadgeInfo> = {
+  Baja: { texto: 'Baja', color: 'var(--prioridad-baja)' },
+  Media: { texto: 'Media', color: 'var(--prioridad-media)' },
+  Alta: { texto: 'Alta', color: 'var(--prioridad-alta)' },
+  Critica: { texto: 'Crítica', color: 'var(--prioridad-critica)' }
 };
 
-export const ESTADOS_TAREA = Object.keys(ESTADO_TAREA_LABELS) as EstadoTarea[];
-export const PRIORIDADES_TAREA = Object.keys(PRIORIDAD_TAREA_LABELS) as PrioridadTarea[];
+export const ESTADOS_TAREA = Object.keys(ESTADO_TAREA_UI) as EstadoTarea[];
+export const PRIORIDADES_TAREA = Object.keys(PRIORIDAD_TAREA_UI) as PrioridadTarea[];
 
 /** Tarea devuelta por la API (TareaDto). */
 export interface Tarea {

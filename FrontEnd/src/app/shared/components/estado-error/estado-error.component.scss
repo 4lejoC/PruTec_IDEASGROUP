@@ -1,0 +1,36 @@
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-7) var(--space-5);
+
+  &__icono {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-md);
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  &__titulo {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  &__mensaje {
+    margin: var(--space-2) 0 var(--space-5);
+    max-width: 460px;
+    color: var(--color-text-muted);
+  }
+}

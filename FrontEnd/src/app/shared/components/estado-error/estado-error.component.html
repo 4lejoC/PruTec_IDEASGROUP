@@ -1,0 +1,11 @@
+<div class="error" role="alert">
+  <span class="error__icono" aria-hidden="true">
+    <mat-icon>cloud_off</mat-icon>
+  </span>
+  <p class="error__titulo">No se pudo cargar la información</p>
+  <p class="error__mensaje">{{ mensaje }}</p>
+  <button mat-stroked-button color="primary" (click)="reintentar.emit()">
+    <mat-icon>refresh</mat-icon>
+    Reintentar
+  </button>
+</div>

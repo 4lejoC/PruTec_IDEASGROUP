@@ -1,0 +1,18 @@
+<div class="dialogo-cabecera" [class.dialogo-cabecera--peligro]="datos.peligro">
+  <span class="dialogo-cabecera__icono" aria-hidden="true">
+    <mat-icon>{{ datos.peligro ? 'delete_outline' : 'help_outline' }}</mat-icon>
+  </span>
+  <h2 mat-dialog-title>{{ datos.titulo }}</h2>
+</div>
+
+<mat-dialog-content>
+  <p class="dialogo-mensaje">{{ datos.mensaje }}</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <!-- El foco inicial va a "Cancelar" para evitar confirmar por accidente -->
+  <button mat-button [mat-dialog-close]="false" cdkFocusInitial>Cancelar</button>
+  <button mat-flat-button [color]="datos.peligro ? 'warn' : 'primary'" [mat-dialog-close]="true">
+    {{ datos.textoConfirmar ?? 'Confirmar' }}
+  </button>
+</mat-dialog-actions>

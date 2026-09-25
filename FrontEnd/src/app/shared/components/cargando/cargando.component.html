@@ -1,0 +1,10 @@
+<div class="cargando" role="status" aria-live="polite" aria-busy="true">
+  <span class="cargando__texto-lector">Cargando…</span>
+  @for (i of indices; track i) {
+    <div class="esqueleto-fila" [style.--i]="i">
+      <span class="esqueleto esqueleto--titulo"></span>
+      <span class="esqueleto esqueleto--texto"></span>
+      <span class="esqueleto esqueleto--badge"></span>
+    </div>
+  }
+</div>

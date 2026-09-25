@@ -1,0 +1,18 @@
+// Estilos comunes de listados: src/styles/_listados.scss.
+// Aquí solo la distribución de la tarjeta de tarea en pantallas angostas.
+
+@media (max-width: 720px) {
+  .tabla .mat-mdc-row {
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+      'titulo titulo titulo'
+      'estado prioridad acciones'
+      'creada creada creada';
+  }
+
+  .mat-column-titulo    { grid-area: titulo; }
+  .mat-column-estado    { grid-area: estado; }
+  .mat-column-prioridad { grid-area: prioridad; }
+  .mat-column-creada    { grid-area: creada; }
+  .mat-column-acciones  { grid-area: acciones; }
+}

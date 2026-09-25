@@ -1,0 +1,61 @@
+<div class="dialogo-cabecera">
+  <span class="dialogo-cabecera__icono" aria-hidden="true">
+    <mat-icon>{{ esEdicion ? 'edit' : 'add_task' }}</mat-icon>
+  </span>
+  <h2 mat-dialog-title>{{ esEdicion ? 'Editar tarea' : 'Nueva tarea' }}</h2>
+</div>
+
+<form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+  <mat-dialog-content class="dialogo-formulario">
+    <mat-form-field>
+      <mat-label>Título</mat-label>
+      <input matInput formControlName="titulo" [maxlength]="maxTitulo" cdkFocusInitial autocomplete="off" />
+      <mat-hint align="end">{{ formulario.controls.titulo.value.length }} / {{ maxTitulo }}</mat-hint>
+      @if (formulario.controls.titulo.hasError('required') || formulario.controls.titulo.hasError('pattern')) {
+        <mat-error>El título es obligatorio.</mat-error>
+      } @else if (formulario.controls.titulo.hasError('maxlength')) {
+        <mat-error>Máximo {{ maxTitulo }} caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Descripción (opcional)</mat-label>
+      <textarea matInput formControlName="descripcion" rows="3" [maxlength]="maxDescripcion"></textarea>
+      <mat-hint align="end">{{ formulario.controls.descripcion.value.length }} / {{ maxDescripcion }}</mat-hint>
+    </mat-form-field>
+
+    <div class="dialogo-formulario__fila">
+      <mat-form-field>
+        <mat-label>Estado</mat-label>
+        <mat-select formControlName="estado">
+          @for (estado of estados; track estado) {
+            <mat-option [value]="estado">
+              <span class="punto-color" [style.background]="estadoUi[estado].color"></span>
+              {{ estadoUi[estado].texto }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Prioridad</mat-label>
+        <mat-select formControlName="prioridad">
+          @for (prioridad of prioridades; track prioridad) {
+            <mat-option [value]="prioridad">
+              <span class="punto-color" [style.background]="prioridadUi[prioridad].color"></span>
+              {{ prioridadUi[prioridad].texto }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancelar</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="formulario.invalid">
+      <mat-icon>check</mat-icon>
+      {{ esEdicion ? 'Guardar cambios' : 'Crear tarea' }}
+    </button>
+  </mat-dialog-actions>
+</form>

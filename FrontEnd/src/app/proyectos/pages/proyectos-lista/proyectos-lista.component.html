@@ -1,25 +1,114 @@
-<section class="cabecera">
+<section class="cabecera aparecer">
   <h1 class="cabecera__titulo">Proyectos</h1>
 
-  <button mat-flat-button color="primary">
+  <button mat-flat-button color="primary" (click)="crear()">
     <mat-icon>add</mat-icon>
     Nuevo proyecto
   </button>
 </section>
 
-<section class="glass-panel muestra">
-  <p class="muestra__titulo">Vista previa del sistema de diseño</p>
-  <div class="muestra__badges">
-    <span class="badge" style="--badge-color: var(--estado-planificado)">Planificado</span>
-    <span class="badge" style="--badge-color: var(--estado-en-curso)">En curso</span>
-    <span class="badge" style="--badge-color: var(--estado-pausado)">Pausado</span>
-    <span class="badge" style="--badge-color: var(--estado-finalizado)">Finalizado</span>
-    <span class="badge" style="--badge-color: var(--estado-cancelado)">Cancelado</span>
-  </div>
-  <div class="muestra__badges">
-    <span class="badge" style="--badge-color: var(--prioridad-baja)">Baja</span>
-    <span class="badge" style="--badge-color: var(--prioridad-media)">Media</span>
-    <span class="badge" style="--badge-color: var(--prioridad-alta)">Alta</span>
-    <span class="badge" style="--badge-color: var(--prioridad-critica)">Crítica</span>
-  </div>
+<section class="glass-panel listado aparecer" style="animation-delay: 80ms">
+  @if (!hayProyectos()) {
+    <app-estado-vacio
+      icono="folder_open"
+      titulo="Aún no hay proyectos"
+      texto="Crea el primero para empezar a organizar tareas.">
+      <button mat-stroked-button color="primary" (click)="crear()">
+        <mat-icon>add</mat-icon>
+        Crear proyecto
+      </button>
+    </app-estado-vacio>
+  } @else {
+    <!-- Barra de búsqueda -->
+    <div class="filtros filtros__fila">
+      <mat-form-field class="buscador" subscriptSizing="dynamic">
+        <mat-icon matIconPrefix>search</mat-icon>
+        <mat-label>Buscar por nombre</mat-label>
+        <input matInput [formControl]="busqueda" autocomplete="off" />
+        @if (busqueda.value) {
+          <button mat-icon-button matIconSuffix (click)="limpiarBusqueda()" aria-label="Limpiar búsqueda">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+
+      <span class="filtros__total">
+        {{ resultado().totalCount }} {{ resultado().totalCount === 1 ? 'proyecto' : 'proyectos' }}
+      </span>
+    </div>
+
+    @if (resultado().totalCount === 0) {
+      <app-estado-vacio
+        icono="search_off"
+        titulo="Sin resultados"
+        [texto]="'Ningún proyecto coincide con “' + filtroNombre() + '”.'">
+        <button mat-stroked-button color="primary" (click)="limpiarBusqueda()">Limpiar búsqueda</button>
+      </app-estado-vacio>
+    } @else {
+      <table mat-table [dataSource]="resultado().items" [trackBy]="trackById" class="tabla">
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef>Proyecto</th>
+          <td mat-cell *matCellDef="let proyecto">
+            <span class="tabla__principal">{{ proyecto.nombre }}</span>
+            @if (proyecto.descripcion) {
+              <span class="tabla__descripcion">{{ proyecto.descripcion }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="fechas">
+          <th mat-header-cell *matHeaderCellDef>Periodo</th>
+          <td mat-cell *matCellDef="let proyecto" class="tabla__secundario tabla__fechas">
+            <mat-icon aria-hidden="true">event</mat-icon>
+            {{ proyecto.fechaInicio | date: 'd MMM y' }} – {{ proyecto.fechaFinPrevista | date: 'd MMM y' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let proyecto">
+            <app-badge [info]="infoEstado(proyecto.estado)" />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef><span class="visualmente-oculto">Acciones</span></th>
+          <td mat-cell *matCellDef="let proyecto" class="tabla__acciones">
+            <!-- stopPropagation: los botones no disparan la navegación de la fila -->
+            <button mat-icon-button (click)="$event.stopPropagation(); editar(proyecto)"
+              matTooltip="Editar" [attr.aria-label]="'Editar ' + proyecto.nombre">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button class="accion-eliminar" (click)="$event.stopPropagation(); eliminar(proyecto)"
+              matTooltip="Eliminar" [attr.aria-label]="'Eliminar ' + proyecto.nombre">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+            <a mat-icon-button class="accion-tareas" [routerLink]="['/proyectos', proyecto.id, 'tareas']"
+              (click)="$event.stopPropagation()"
+              matTooltip="Ver tareas" [attr.aria-label]="'Ver tareas de ' + proyecto.nombre">
+              <mat-icon>arrow_forward</mat-icon>
+            </a>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+        <tr
+          mat-row
+          *matRowDef="let proyecto; columns: columnas; let i = index"
+          class="tabla__fila"
+          [style.--i]="i"
+          tabindex="0"
+          (click)="verTareas(proyecto)"
+          (keydown.enter)="alPresionarEnter($event, proyecto)"></tr>
+      </table>
+
+      <mat-paginator
+        [length]="resultado().totalCount"
+        [pageIndex]="resultado().page - 1"
+        [pageSize]="tamanioPagina()"
+        [pageSizeOptions]="opcionesTamanio"
+        (page)="cambiarPagina($event)"
+        showFirstLastButtons />
+    }
+  }
 </section>
