@@ -1,0 +1,60 @@
+// =============================================================================
+// Fondo de la aplicación: un solo color plano + formas geométricas de color
+// sólido (sin degradados). El vidrio de las tarjetas desenfoca estas formas
+// al pasar por encima, que es lo que produce el efecto glassmorphism.
+// =============================================================================
+.app-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--color-bg);
+
+  &__forma {
+    position: absolute;
+    animation: flotar 26s ease-in-out infinite alternate;
+
+    // Círculo lavanda (arriba a la derecha)
+    &--lavanda {
+      width: 420px;
+      height: 420px;
+      top: 90px;
+      right: -110px;
+      border-radius: 50%;
+      background: var(--shape-lavanda);
+    }
+
+    // Cuadrado redondeado durazno (abajo a la izquierda)
+    &--durazno {
+      width: 240px;
+      height: 240px;
+      bottom: 60px;
+      left: -50px;
+      border-radius: 56px;
+      background: var(--shape-durazno);
+      transform: rotate(16deg);
+      animation-delay: -9s;
+    }
+
+    // Círculo menta (centro)
+    &--menta {
+      width: 150px;
+      height: 150px;
+      top: 42%;
+      left: 46%;
+      border-radius: 50%;
+      background: var(--shape-menta);
+      animation-delay: -15s;
+    }
+  }
+}
+
+@keyframes flotar {
+  from { translate: 0 0; }
+  to   { translate: 30px -24px; }
+}
+
+// Accesibilidad: sin animaciones si el usuario lo pidió en su sistema.
+@media (prefers-reduced-motion: reduce) {
+  .app-background__forma { animation: none; }
+}

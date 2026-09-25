@@ -1,0 +1,85 @@
+// =============================================================================
+// Design tokens — paleta "Lavanda y ciruela" (tema claro).
+// Única fuente de colores, radios, sombras y tiempos: los componentes usan
+// estas variables CSS y nunca colores escritos a mano. Sin degradados.
+// =============================================================================
+:root {
+  // ----- Fondo y texto
+  --color-bg: #eeeaf3;               // lavanda pálida (fondo plano)
+  --color-text: #221a2e;
+  --color-text-muted: #645b70;
+  --color-text-subtle: #8a8196;
+
+  // ----- Marca
+  --color-primary: #4b2a6b;          // ciruela
+  --color-primary-hover: #5a3480;
+  --color-on-primary: #faf7fd;
+  --color-primary-soft: rgba(75, 42, 107, 0.08);   // fondos suaves (chips, link activo)
+
+  // ----- Formas decorativas del fondo (colores sólidos)
+  --shape-lavanda: #b8a1e3;
+  --shape-durazno: #ffb38a;
+  --shape-menta: #9fe0c9;
+
+  // ----- Vidrio (glassmorphism claro)
+  --glass-bg: rgba(255, 255, 255, 0.5);            // tarjetas y paneles
+  --glass-bg-hover: rgba(255, 255, 255, 0.62);
+  --glass-bg-strong: rgba(255, 255, 255, 0.82);    // diálogos y menús: más opacos para legibilidad
+  --glass-bg-fallback: rgba(255, 255, 255, 0.94);  // navegadores sin backdrop-filter
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-blur: 24px;
+  --color-line: rgba(34, 26, 46, 0.08);            // separadores internos
+
+  // ----- Estados de proyecto
+  --estado-planificado: #7a5cc2;
+  --estado-en-curso: #2f6fbf;
+  --estado-pausado: #b7791f;
+  --estado-finalizado: #1f8a6a;
+  --estado-cancelado: #c2413b;
+
+  // ----- Estados de tarea
+  --estado-pendiente: #7a5cc2;
+  --estado-en-progreso: #2f6fbf;
+  --estado-bloqueada: #c2413b;
+  --estado-completada: #1f8a6a;
+
+  // ----- Prioridades
+  --prioridad-baja: #6b7280;
+  --prioridad-media: #2f6fbf;
+  --prioridad-alta: #c56a1b;
+  --prioridad-critica: #c2413b;
+
+  // ----- Feedback
+  --color-success: #1f8a6a;
+  --color-danger: #c2413b;
+
+  // ----- Forma
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  // ----- Sombras (teñidas de ciruela, nunca negras)
+  --shadow-glass: 0 14px 34px rgba(75, 50, 110, 0.14);
+  --shadow-button: 0 6px 16px rgba(75, 42, 107, 0.3);
+
+  // ----- Espaciado (escala de 4px)
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  // ----- Movimiento
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+
+  // ----- Layout
+  --content-max-width: 1200px;
+  --toolbar-height: 64px;
+
+  --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}

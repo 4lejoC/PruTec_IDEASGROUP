@@ -1,0 +1,20 @@
+// =============================================================================
+// Mixins de diseño (no generan CSS por sí solos; se pueden importar desde
+// cualquier componente sin duplicar estilos).
+// =============================================================================
+
+// Patrón glassmorphism: superficie blanca translúcida + desenfoque de lo que
+// hay detrás (las formas del fondo) + borde blanco + brillo superior + sombra suave.
+@mixin glass($bg: var(--glass-bg), $blur: var(--glass-blur)) {
+  background: $bg;
+  backdrop-filter: blur($blur) saturate(180%);
+  -webkit-backdrop-filter: blur($blur) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass), var(--glass-highlight);
+
+  // Si el navegador no soporta desenfoque, se usa un fondo casi opaco
+  // para no perder legibilidad.
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background: var(--glass-bg-fallback);
+  }
+}

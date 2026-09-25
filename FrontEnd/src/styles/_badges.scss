@@ -1,0 +1,29 @@
+// =============================================================================
+// Etiquetas (badges) para estado y prioridad. Un solo patrón visual:
+// punto de color + texto, sobre un fondo claro teñido del mismo color.
+// Uso: <span class="badge" style="--badge-color: var(--estado-en-curso)">En curso</span>
+// =============================================================================
+.badge {
+  --badge-color: var(--color-text-muted);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--badge-color);
+  background: color-mix(in srgb, var(--badge-color) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--badge-color) 25%, white);
+
+  &::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--badge-color);
+  }
+}

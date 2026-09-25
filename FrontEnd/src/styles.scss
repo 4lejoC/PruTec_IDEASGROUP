@@ -1,4 +1,37 @@
-/* You can add global styles to this file, and also import other style files */
+// Punto de entrada de los estilos globales.
+// El orden importa: primero los tokens, luego el tema y los patrones.
+@use 'styles/tokens';
+@use 'styles/material-theme';
+@use 'styles/glass';
+@use 'styles/background';
+@use 'styles/badges';
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+// Foco visible y consistente para navegación con teclado.
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+// Barra de desplazamiento discreta acorde al tema.
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(75, 42, 107, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
