@@ -63,10 +63,16 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new()
     {
-        Title = "Gestión de Tareas API",
+        Title = "IDEASGROUP · Gestión de Proyectos",
         Version = "v1",
         Description = "API REST para administrar proyectos y sus tareas."
     });
+
+    // Orden de las secciones en Swagger (por defecto es alfabético por controller).
+    // Dentro de cada sección se mantiene el orden en que se declaran los métodos.
+    string[] ordenSecciones = ["Status", "Proyectos", "Tareas"];
+    options.OrderActionsBy(api =>
+        Array.IndexOf(ordenSecciones, api.ActionDescriptor.RouteValues["controller"]).ToString("D2"));
 
     // Muestra en Swagger los comentarios /// <summary> de controllers y DTOs.
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
