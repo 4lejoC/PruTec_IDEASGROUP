@@ -16,7 +16,7 @@ namespace GestionTareas.Api.Controllers;
 [ApiController]
 [Route("api/proyectos")]
 [Produces("application/json")]
-public class ProyectosController(IProyectoService service) : ControllerBase
+public class ProyectosController(IProyectoService service, IReporteService reportes) : ControllerBase
 {
     /// <summary>Lista los proyectos de forma paginada.</summary>
     /// <remarks>
@@ -102,5 +102,24 @@ public class ProyectosController(IProyectoService service) : ControllerBase
     {
         await service.EliminarAsync(id, ct);
         return NoContent();
+    }
+
+    /// <summary>Genera el reporte PDF del proyecto y sus tareas.</summary>
+    /// <remarks>
+    /// Incluye los datos del proyecto, un resumen de las tareas por estado y por prioridad,
+    /// y el detalle de todas sus tareas (sin paginar). Se genera con QuestPDF.
+    /// </remarks>
+    /// <param name="id">Código del proyecto.</param>
+    /// <param name="ct">Token de cancelación de la petición.</param>
+    /// <response code="200">Archivo PDF del reporte, con nombre reporte-proyecto-{nombre}-{fecha}.pdf.</response>
+    /// <response code="404">No existe un proyecto con ese código.</response>
+    [HttpGet("{id:int}/reporte")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, "application/pdf")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DescargarReporte(int id, CancellationToken ct)
+    {
+        var reporte = await reportes.GenerarReporteProyectoAsync(id, ct);
+        // El nombre viaja en el encabezado Content-Disposition de la respuesta.
+        return File(reporte.Contenido, "application/pdf", reporte.NombreArchivo);
     }
 }

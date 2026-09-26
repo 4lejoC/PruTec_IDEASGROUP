@@ -53,6 +53,18 @@ public class TareaRepository(AppDbContext context) : ITareaRepository
         return (items, totalCount);
     }
 
+    public async Task<IReadOnlyList<Tarea>> ListarTodasPorProyectoAsync(
+        int proyectoId, CancellationToken ct = default)
+    {
+        // Mismo orden que el listado paginado: más recientes primero.
+        return await context.Tareas
+            .AsNoTracking()
+            .Where(t => t.ProyectoId == proyectoId)
+            .OrderByDescending(t => t.FechaCreacion)
+            .ThenByDescending(t => t.Id)
+            .ToListAsync(ct);
+    }
+
     public Task<Tarea?> ObtenerPorIdAsync(int id, CancellationToken ct = default) =>
         context.Tareas.FirstOrDefaultAsync(t => t.Id == id, ct);
 

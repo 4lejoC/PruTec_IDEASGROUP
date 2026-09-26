@@ -19,6 +19,9 @@ public interface ITareaRepository
         int pageSize,
         CancellationToken ct = default);
 
+    /// <summary>Todas las tareas de un proyecto, sin paginar (para el reporte PDF).</summary>
+    Task<IReadOnlyList<Tarea>> ListarTodasPorProyectoAsync(int proyectoId, CancellationToken ct = default);
+
     Task<Tarea?> ObtenerPorIdAsync(int id, CancellationToken ct = default);
 
     Task AgregarAsync(Tarea tarea, CancellationToken ct = default);

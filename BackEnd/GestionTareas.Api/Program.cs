@@ -38,6 +38,10 @@ builder.Services.AddScoped<ITareaRepository, TareaRepository>();
 // Capa Service
 builder.Services.AddScoped<IProyectoService, ProyectoService>();
 builder.Services.AddScoped<ITareaService, TareaService>();
+builder.Services.AddScoped<IReporteService, ReporteService>();
+
+// QuestPDF (reporte PDF): licencia Community, gratuita para este tipo de uso.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 // CORS: orígenes permitidos desde la variable Cors__AllowedOrigins (separados por coma).
 const string CorsPolicy = "Frontend";
@@ -48,7 +52,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy(CorsPolicy, policy => policy
         .WithOrigins(allowedOrigins)
         .AllowAnyHeader()
-        .AllowAnyMethod()));
+        .AllowAnyMethod()
+        // Permite que el frontend lea el nombre del archivo del reporte PDF
+        // (por defecto el navegador oculta este encabezado en peticiones entre orígenes).
+        .WithExposedHeaders("Content-Disposition")));
 
 // Enums en JSON como texto ("EnCurso") en lugar de números: más legible para el frontend.
 builder.Services.AddControllers()
