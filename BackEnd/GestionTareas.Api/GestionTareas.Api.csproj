@@ -20,6 +20,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- Fija EF Core en la misma versión que Design/Tools (8.0.31). Sin esta referencia, el proyecto
+         de pruebas recibía EF Core 8.0.11 a través de Npgsql y la compilación mostraba MSB3277. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.31" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     <PackageReference Include="QuestPDF" Version="2026.9.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
