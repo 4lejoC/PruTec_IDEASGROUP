@@ -34,6 +34,7 @@ Módulo inicial de una plataforma de gestión de trabajo.
 | Proveedor EF | Npgsql.EntityFrameworkCore.PostgreSQL 8 |
 | Configuración | Variables de entorno (archivo `.env` cargado con DotNetEnv) |
 | Documentación API | Swagger / OpenAPI (Swashbuckle) |
+| Reporte PDF | **QuestPDF** (licencia Community), generado en el backend |
 | Pruebas backend | xUnit + Moq |
 | Pruebas frontend | Jasmine + Karma |
 | Modelado de datos | SAP PowerDesigner (modelos conceptual, lógico y físico) |
@@ -60,6 +61,7 @@ PruTec_IDEASGROUP/
 │   │   ├── Mappings/            ← conversión entidad → DTO
 │   │   ├── Exceptions/          ← excepciones de negocio
 │   │   ├── Handlers/            ← manejo centralizado de errores
+│   │   ├── Reports/             ← diseño del reporte PDF (QuestPDF) y logo embebido
 │   │   ├── Data/
 │   │   │   ├── AppDbContext.cs
 │   │   │   ├── Configurations/  ← mapeo Fluent API al modelo físico
@@ -70,6 +72,7 @@ PruTec_IDEASGROUP/
 ├── FrontEnd/                    ← aplicación Angular
 │   ├── .env.example             ← plantilla de configuración del frontend
 │   └── src/
+│       ├── assets/              ← logos (versión clara y oscura) e ícono de la pestaña
 │       ├── styles/              ← sistema de diseño (tokens, vidrio, tema Material, badges)
 │       ├── tests/               ← pruebas unitarias (Jasmine + Karma)
 │       └── app/
@@ -312,6 +315,7 @@ Documentación interactiva completa en **Swagger**: `http://localhost:5257/swagg
 | POST | `/api/proyectos` | Crear proyecto | 201, 400 |
 | PUT | `/api/proyectos/{id}` | Actualizar proyecto | 200, 400, 404 |
 | DELETE | `/api/proyectos/{id}` | Eliminar proyecto (no permitido si tiene tareas) | 204, 404, **409** |
+| GET | `/api/proyectos/{id}/reporte` | Reporte PDF del proyecto y todas sus tareas, descargado como `reporte-proyecto-{nombre}-{fecha}.pdf` | 200 (`application/pdf`), 404 |
 
 ### Tareas
 
@@ -394,6 +398,13 @@ Los errores de validación (400) incluyen además un diccionario `errors` con lo
 - **Validación en tres niveles:** formato en los DTOs (Data Annotations + `[ApiController]`),
   reglas de negocio en los services y restricciones en la base como última línea de defensa.
 - **Manejo centralizado de errores** con `IExceptionHandler` (.NET 8) y respuestas `ProblemDetails`.
+- **Reporte PDF con QuestPDF en el backend:** el reporte incluye *todas* las tareas del proyecto, no solo la página
+  visible, y el servidor ya tiene acceso directo a los datos; generarlo en el navegador obligaría a pedir todas las
+  páginas de tareas y a sumar una librería pesada al frontend. `ReporteService` obtiene los datos y
+  `Reports/ProyectoReporte` define el diseño: encabezado con logo (embebido en el ensamblado), datos del proyecto,
+  resumen por estado y por prioridad con porcentaje de avance, tabla de tareas que continúa en varias páginas
+  repitiendo su encabezado, y pie con numeración. Se eligió QuestPDF por su API fluida en C#, sin plantillas HTML
+  ni dependencias externas; su licencia Community es gratuita para este uso.
 - **Endpoint de estado** (`/api/status`): usa el `DbContext` directamente, sin pasar por Service ni Repository,
   porque es una comprobación de infraestructura y no una operación de negocio. Responde 503 si la base no
   contesta en 5 segundos, en lugar de esperar el tiempo de espera por defecto del proveedor.
@@ -431,12 +442,17 @@ Los errores de validación (400) incluyen además un diccionario `errors` con lo
 - **Modo claro / oscuro** (paleta oscura "Ciruela nocturna"): el tema se aplica con un atributo en `<html>` y
   solo redefine los tokens. Recuerda la elección del usuario, respeta la preferencia del sistema si no eligió,
   y se aplica antes de que cargue Angular para evitar parpadeos.
+- **Logo de IDEASGROUP** en la barra superior, con una segunda versión para el modo oscuro (el texto gris del logo
+  original no se lee sobre fondo oscuro); se muestra una u otra según el tema activo.
 - **Navegación en contexto:** las tareas siempre pertenecen a un proyecto (igual que la API), por lo que no hay
   una sección global de tareas. Se accede desde cada proyecto (`/proyectos/:id/tareas`) y se vuelve con migas
   de navegación o el botón volver.
 - **Estado de los listados en la URL** (`?nombre=&page=&pageSize=` en proyectos; `?texto=&estado=&prioridad=&page=&pageSize=`
   en tareas): al volver de las tareas, recargar o compartir el enlace se conservan filtros y paginación.
   La URL se actualiza con `Location.replaceState` para no generar navegaciones ni llenar el historial.
+- **Descarga del reporte PDF** desde la pantalla de tareas: se pide a la API como archivo (`Blob`) y se descarga con
+  una URL temporal, usando el nombre que envía el backend en `Content-Disposition` (expuesto por CORS), así el
+  nombre se define en un solo lugar. El botón muestra un indicador mientras se genera y queda deshabilitado para evitar pedidos repetidos.
 - **Componentes reutilizables** en `shared/`: etiqueta de estado/prioridad, estado vacío, estado de carga
   (esqueletos), estado de error con reintento, diálogo de confirmación y notificaciones.
 - **Formularios reactivos en diálogos** para crear y editar. Solo validan y devuelven los datos; la página que
@@ -470,6 +486,8 @@ Los errores de validación (400) incluyen además un diccionario `errors` con lo
 | Estado y prioridad iniciales de una tarea | `PENDIENTE` y `MEDIA` si no se envían |
 | Cambio de proyecto de una tarea | No permitido: una tarea siempre pertenece al proyecto donde se creó |
 | Orden del listado de tareas | De la más reciente a la más antigua |
+| Contenido del reporte PDF | Datos del proyecto, resumen de tareas por estado y prioridad, porcentaje completado y detalle de todas las tareas |
+| Nombre del reporte PDF | `reporte-proyecto-{nombre}-{AAAA-MM-DD}.pdf`, con el nombre del proyecto sin tildes, eñes ni espacios |
 | Búsqueda de tareas por texto | Coincidencia parcial en título **o** descripción |
 | Rutas de tareas | Listar y crear dentro del proyecto (`/api/proyectos/{id}/tareas`); obtener, editar y eliminar por código (`/api/tareas/{id}`) |
 
@@ -499,6 +517,9 @@ por *mocks* (Moq), por lo que **no requieren base de datos** ni Docker.
 | `ProyectoServiceTests` | `ObtenerPorIdAsync_ProyectoInexistente_LanzaNoEncontrado` | Un código inexistente produce "no encontrado" |
 | `TareaServiceTests` | `CrearAsync_ProyectoInexistente_LanzaNoEncontradoYNoGuarda` | Toda tarea debe pertenecer a un proyecto existente |
 | `TareaServiceTests` | `CrearAsync_SinEstadoNiPrioridad_AsignaPendienteYMedia` | Valores por defecto de la tarea |
+| `ReporteServiceTests` | `GenerarReporteProyectoAsync_ProyectoInexistente_LanzaNoEncontrado` | Un proyecto inexistente produce "no encontrado" y no consulta tareas |
+| `ReporteServiceTests` | `GenerarReporteProyectoAsync_ProyectoConTareas_DevuelveUnPdf` | Se genera un PDF válido (firma `%PDF`) con QuestPDF y el nombre del archivo |
+| `ReporteServiceTests` | `NombreArchivo_NombreConTildesYSimbolos_GeneraNombreNormalizadoConFecha` | El nombre del archivo queda sin tildes, eñes ni espacios, con la fecha al final |
 
 ### Frontend (Jasmine + Karma)
 
@@ -526,6 +547,7 @@ npm test -- --watch=false    # una sola ejecución
 | `error.interceptor.spec.ts` | Petición real con error 404 | El componente recibe un `ApiError`, no un `HttpErrorResponse` |
 | `proyecto.service.spec.ts` | `listar` con filtro | Método GET y parámetros `nombre`, `page`, `pageSize` |
 | `proyecto.service.spec.ts` | `listar` sin búsqueda | No envía el parámetro `nombre` vacío |
+| `proyecto.service.spec.ts` | `descargarReporte` | Pide `/proyectos/{id}/reporte` como archivo (`Blob`) y toma el nombre del encabezado `Content-Disposition` |
 | `proyecto.service.spec.ts` | `eliminar` | Método DELETE sobre `/proyectos/{id}` |
 | `app.component.spec.ts` | Creación y nombre en la barra | La aplicación arranca y muestra su título |
 
@@ -538,10 +560,10 @@ que en el trabajo diario:
 
 | Área | Uso |
 |---|---|
-| Backend | Generación de código base de entidades, configuración de EF, manejo de errores, endpoint de estado y pruebas unitarias |
+| Backend | Generación de código base de entidades, configuración de EF, manejo de errores, endpoint de estado, reporte PDF y pruebas unitarias |
 | Frontend | Generación de código base de modelos, servicios HTTP, interceptor, configuración por `.env`, sistema de diseño, páginas, formularios, conexión con la API y pruebas unitarias; propuestas de paletas de color |
 | Documentación | Redacción de este README y de los comentarios XML de Swagger |
-| Revisión | Diagnóstico de errores durante el desarrollo y revisión de que los archivos versionados coincidan con el repositorio |
+| Revisión | Diagnóstico de errores durante el desarrollo, revisión visual del diseño con capturas y verificación de que los archivos versionados coincidan con el repositorio |
 
 Todas las decisiones fueron revisadas y validadas por el autor, y varias se tomaron en contra de la
 sugerencia inicial del asistente (por ejemplo: todo el modelado de la base de daots, un solo proyecto de API en lugar de uno por capa,
