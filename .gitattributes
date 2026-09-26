@@ -1,0 +1,12 @@
+# Normaliza los finales de línea: en el repositorio se guardan siempre como LF,
+# aunque Visual Studio o el editor usen CRLF en Windows. Evita que un archivo
+# aparezca como modificado solo por los saltos de línea.
+* text=auto
+
+# Archivos binarios: no se tocan.
+*.png binary
+*.ico binary
+*.pdf binary
+*.cdm binary
+*.ldm binary
+*.pdm binary
