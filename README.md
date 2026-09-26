@@ -1,9 +1,7 @@
 # Gestión de Tareas – Prueba Técnica IDEASGROUP
 
-Aplicativo web para crear proyectos y administrar las tareas asociadas a cada uno.
+Aplicación web para crear proyectos y administrar las tareas asociadas a cada uno.
 Módulo inicial de una plataforma de gestión de trabajo.
-
-> **Estado:** en desarrollo. Las secciones marcadas como *(pendiente)* se completarán en los próximos commits.
 
 ---
 
@@ -28,7 +26,7 @@ Módulo inicial de una plataforma de gestión de trabajo.
 | Componente | Tecnología |
 |---|---|
 | Frontend | Angular 17.3 (componentes standalone), TypeScript, SCSS |
-| Librería de componentes | **Angular Material 17** con tema propio (paleta "Lavanda y ciruela", estilo glassmorphism) |
+| Librería de componentes | **Angular Material 17** con tema propio (paleta "Lavanda y ciruela", estilo glassmorphism, modo claro y oscuro) |
 | Configuración frontend | Archivo `.env` leído al compilar con **@ngx-env/builder** |
 | Backend | .NET 8, C#, ASP.NET Core Web API (controllers) |
 | Persistencia | Entity Framework Core 8 con migraciones incrementales |
@@ -37,6 +35,7 @@ Módulo inicial de una plataforma de gestión de trabajo.
 | Configuración | Variables de entorno (archivo `.env` cargado con DotNetEnv) |
 | Documentación API | Swagger / OpenAPI (Swashbuckle) |
 | Pruebas backend | xUnit + Moq |
+| Pruebas frontend | Jasmine + Karma |
 | Modelado de datos | SAP PowerDesigner (modelos conceptual, lógico y físico) |
 
 ---
@@ -46,6 +45,7 @@ Módulo inicial de una plataforma de gestión de trabajo.
 ```
 PruTec_IDEASGROUP/
 ├── .env.example                 ← plantilla de variables de entorno
+├── .gitattributes               ← normaliza los finales de línea (LF)
 ├── docker-compose.yml           ← PostgreSQL 16 para desarrollo
 ├── BackEnd/
 │   ├── global.json              ← fija el SDK de .NET 8
@@ -71,6 +71,7 @@ PruTec_IDEASGROUP/
 │   ├── .env.example             ← plantilla de configuración del frontend
 │   └── src/
 │       ├── styles/              ← sistema de diseño (tokens, vidrio, tema Material, badges)
+│       ├── tests/               ← pruebas unitarias (Jasmine + Karma)
 │       └── app/
 │           ├── proyectos/       ← modelo, servicio HTTP, formulario y página de proyectos
 │           ├── tareas/          ← modelo, servicio HTTP, formulario y página de tareas
@@ -206,7 +207,7 @@ docker compose up -d
 | Síntoma | Causa probable | Solución |
 |---|---|---|
 | La aplicación muestra *"No se pudo conectar con el servidor"* | La API no está en ejecución o el puerto no coincide con `NG_APP_API_URL` | Ejecutar el backend (paso 5) y revisar `FrontEnd/.env` |
-| La aplicación muestra *"Ocurrió un error inesperado"* (HTTP 500) | El contenedor de PostgreSQL está detenido (por ejemplo, tras reiniciar el equipo o cerrar Docker Desktop) | Iniciar Docker Desktop y ejecutar `docker compose up -d`. El detalle del error se registra en la consola de la API |
+| La aplicación muestra *"Ocurrió un error inesperado"* (HTTP 500) | El contenedor de PostgreSQL está detenido (por ejemplo, tras reiniciar el equipo o cerrar Docker Desktop) | Iniciar Docker Desktop y ejecutar `docker compose up -d`. Se puede confirmar con `/api/status` (responde 503 si no hay conexión). El detalle del error se registra en la consola de la API |
 | Error `relation "proyecto" does not exist` en la consola de la API | La base de datos está vacía (volumen recreado) | Aplicar las migraciones (paso 4) |
 | Error de CORS en la consola del navegador | El origen del frontend no está en `Cors__AllowedOrigins` | Agregarlo en el `.env` de la raíz y reiniciar la API |
 
@@ -235,7 +236,7 @@ Todas se definen en el archivo `.env` de la raíz (no versionado). La plantilla 
 - El doble guion bajo (`__`) equivale a una sección de configuración de .NET
   (`ConnectionStrings__DefaultConnection` → `ConnectionStrings:DefaultConnection`).
 - Si una variable ya existe en el sistema, tiene prioridad sobre el valor del `.env`.
-- Si falta la cadena de conexión, la API se detiene al iniciar con un mensaje indicando cómo configurarla.
+- Si falta la cadena de conexión, la API se detiene al iniciar con un mensaje que indica cómo configurarla.
 
 ### Frontend (Angular)
 
@@ -250,7 +251,8 @@ Se definen en `FrontEnd/.env` (no versionado). La plantilla es `FrontEnd/.env.ex
   tiene direcciones escritas a mano.
 - Estos valores quedan incluidos en el JavaScript que recibe el navegador, por lo que **nunca deben
   contener secretos** (solo URLs y configuración pública).
-- Si la variable no está definida, la aplicación muestra un error indicando cómo configurarla.
+- Si la variable no está definida, la aplicación no inicia y la consola del navegador muestra un mensaje
+  que indica cómo configurarla.
 
 ---
 
@@ -285,7 +287,7 @@ Los archivos fuente están en `Database/powerdesigner/`.
 | La fecha de fin prevista no puede ser anterior a la de inicio | `CHECK ck_proyecto_fechas` |
 | Estados y prioridades con valores fijos | `CHECK` sobre columnas `varchar` |
 | Fecha de creación automática | `DEFAULT CURRENT_TIMESTAMP` |
-| Listado de tareas por proyecto eficiente | Índice `ix_proyecto_tiene_tareas` sobre la FK |
+| Consulta eficiente de las tareas de un proyecto | Índice `ix_proyecto_tiene_tareas` sobre la FK |
 
 ### Valores permitidos
 
@@ -392,6 +394,9 @@ Los errores de validación (400) incluyen además un diccionario `errors` con lo
 - **Validación en tres niveles:** formato en los DTOs (Data Annotations + `[ApiController]`),
   reglas de negocio en los services y restricciones en la base como última línea de defensa.
 - **Manejo centralizado de errores** con `IExceptionHandler` (.NET 8) y respuestas `ProblemDetails`.
+- **Endpoint de estado** (`/api/status`): usa el `DbContext` directamente, sin pasar por Service ni Repository,
+  porque es una comprobación de infraestructura y no una operación de negocio. Responde 503 si la base no
+  contesta en 5 segundos, en lugar de esperar el tiempo de espera por defecto del proveedor.
 - **Configuración externa:** la cadena de conexión y CORS se leen de variables de entorno; ningún secreto
   se versiona. `DotNetEnv` carga el mismo `.env` que usa Docker, de modo que la contraseña se define una sola vez.
 - **Fechas:** `DateOnly` → `date` para fechas de negocio; `DateTime` en UTC → `timestamp with time zone` para auditoría.
@@ -533,12 +538,14 @@ que en el trabajo diario:
 
 | Área | Uso |
 |---|---|
-| Backend | Generación de código base de entidades, configuración de EF, manejo de errores y pruebas unitarias |
-| Frontend | Generación de código base de modelos, servicios HTTP, interceptor, configuración por `.env` y sistema de diseño; propuestas de paletas de color |
+| Backend | Generación de código base de entidades, configuración de EF, manejo de errores, endpoint de estado y pruebas unitarias |
+| Frontend | Generación de código base de modelos, servicios HTTP, interceptor, configuración por `.env`, sistema de diseño, páginas, formularios, conexión con la API y pruebas unitarias; propuestas de paletas de color |
 | Documentación | Redacción de este README y de los comentarios XML de Swagger |
+| Revisión | Diagnóstico de errores durante el desarrollo y revisión de que los archivos versionados coincidan con el repositorio |
 
 Todas las decisiones fueron revisadas y validadas por el autor, y varias se tomaron en contra de la
-sugerencia inicial del asistente (por ejemplo: un solo proyecto de API en lugar de uno por capa,
+sugerencia inicial del asistente (por ejemplo: todo el modelado de la base de daots, un solo proyecto de API en lugar de uno por capa,
 mantener el formato de solución `.slnx`, **no** aplicar migraciones automáticamente al iniciar,
 estructura del frontend por funcionalidad, configuración con `.env` en lugar de archivos `environment`,
+un único `.gitignore` en la raíz, pruebas del frontend reunidas en una carpeta propia,
 y la elección de la paleta de colores).
