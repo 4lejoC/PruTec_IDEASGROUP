@@ -173,6 +173,9 @@ dotnet run --project BackEnd/GestionTareas.Api --launch-profile http
 La API queda en `http://localhost:5257` y la documentación Swagger en
 **http://localhost:5257/swagger**.
 
+Para comprobar que la API se conecta con la base de datos, abrir **http://localhost:5257/api/status**:
+debe responder `"baseDatos": "Conectada"`.
+
 ### 6. Ejecutar el frontend
 
 Con el backend en ejecución:
@@ -317,6 +320,19 @@ Documentación interactiva completa en **Swagger**: `http://localhost:5257/swagg
 | GET | `/api/tareas/{id}` | Obtener una tarea | 200, 404 |
 | PUT | `/api/tareas/{id}` | Actualizar tarea | 200, 400, 404 |
 | DELETE | `/api/tareas/{id}` | Eliminar tarea | 204, 404 |
+
+### Estado del servicio
+
+| Método | Ruta | Descripción | Respuestas |
+|---|---|---|---|
+| GET | `/api/status` | Verifica que la API esté disponible y que pueda conectarse con la base de datos | 200, **503** |
+
+```json
+{ "api": "Disponible", "baseDatos": "Conectada", "fecha": "2026-09-26T01:10:00Z" }
+```
+
+Si PostgreSQL no responde en 5 segundos (por ejemplo, el contenedor está detenido), devuelve **503**
+con `"baseDatos": "Sin conexión"`. Útil para confirmar la instalación antes de abrir el frontend.
 
 ### Formato de errores
 
@@ -479,9 +495,32 @@ por *mocks* (Moq), por lo que **no requieren base de datos** ni Docker.
 | `TareaServiceTests` | `CrearAsync_ProyectoInexistente_LanzaNoEncontradoYNoGuarda` | Toda tarea debe pertenecer a un proyecto existente |
 | `TareaServiceTests` | `CrearAsync_SinEstadoNiPrioridad_AsignaPendienteYMedia` | Valores por defecto de la tarea |
 
-### Frontend *(pendiente)*
+### Frontend (Jasmine + Karma)
 
-_Se documentará al implementar el frontend._
+Pruebas unitarias de la lógica que no depende de la interfaz. Las peticiones HTTP se simulan con
+`HttpTestingController`, por lo que **no requieren el backend** en ejecución.
+
+**Ejecutar** (desde `FrontEnd/`, con el archivo `.env` creado en el paso 6):
+
+```bash
+npm test                     # modo interactivo (vuelve a ejecutar al guardar)
+npm test -- --watch=false    # una sola ejecución
+```
+
+| Archivo | Prueba | Verifica |
+|---|---|---|
+| `rango-fechas.validator.spec.ts` | Fin anterior a inicio | Marca el error `rangoFechas` (misma regla que el backend) |
+| `rango-fechas.validator.spec.ts` | Mismo día con distinta hora | Compara solo la fecha, no la hora |
+| `rango-fechas.validator.spec.ts` | Falta una fecha | No duplica el error de campo obligatorio |
+| `error.interceptor.spec.ts` | Status 0 | Mensaje de "no se pudo conectar con el servidor" |
+| `error.interceptor.spec.ts` | 400 de validación | Une los mensajes por campo y los conserva en `errores` |
+| `error.interceptor.spec.ts` | 409 con ProblemDetails | Muestra el `detail` enviado por el backend |
+| `error.interceptor.spec.ts` | Error sin cuerpo | Mensaje por defecto según el código HTTP |
+| `error.interceptor.spec.ts` | Petición real con error 404 | El componente recibe un `ApiError`, no un `HttpErrorResponse` |
+| `proyecto.service.spec.ts` | `listar` con filtro | Método GET y parámetros `nombre`, `page`, `pageSize` |
+| `proyecto.service.spec.ts` | `listar` sin búsqueda | No envía el parámetro `nombre` vacío |
+| `proyecto.service.spec.ts` | `eliminar` | Método DELETE sobre `/proyectos/{id}` |
+| `app.component.spec.ts` | Creación y nombre en la barra | La aplicación arranca y muestra su título |
 
 ---
 
