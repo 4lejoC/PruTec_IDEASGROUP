@@ -197,6 +197,11 @@ npm start
 
 La aplicación queda en **http://localhost:4200**.
 
+> Al terminar, `npm install` informa vulnerabilidades en algunas dependencias. Provienen principalmente de las
+> herramientas de desarrollo de Angular 17 (servidor de desarrollo, Karma, compiladores) y no del código que se
+> ejecuta en el navegador. **No se debe ejecutar `npm audit fix --force`**: actualiza paquetes a versiones
+> incompatibles con Angular 17 y rompe el proyecto.
+
 ### Reiniciar la base de datos desde cero
 
 ```bash
