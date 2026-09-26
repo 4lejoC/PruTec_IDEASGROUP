@@ -1,5 +1,5 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe, Location } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -9,32 +9,36 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime, distinctUntilChanged, map, tap } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, filter, map, of, switchMap, tap } from 'rxjs';
 
 import { BadgeComponent, BadgeInfo } from '../../../shared/components/badge/badge.component';
+import { CargandoComponent } from '../../../shared/components/cargando/cargando.component';
+import { EstadoErrorComponent } from '../../../shared/components/estado-error/estado-error.component';
 import { EstadoVacioComponent } from '../../../shared/components/estado-vacio/estado-vacio.component';
+import { mensajeDeError } from '../../../shared/api-error.model';
 import { ConfirmacionService } from '../../../shared/confirmacion.service';
 import { NotificacionService } from '../../../shared/notificacion.service';
 import { PagedResult } from '../../../shared/paged-result.model';
 import { armarQueryParams, leerPagina, leerTamanio } from '../../../shared/url-estado.util';
 import { ProyectosListadoStore } from '../../proyectos-listado.store';
-import { ESTADO_PROYECTO_UI, EstadoProyecto, Proyecto, ProyectoGuardar } from '../../proyecto.model';
-import { PROYECTOS_MOCK } from '../../proyectos.mock';
-import { TAREAS_MOCK } from '../../../tareas/tareas.mock';
+import { ProyectoService } from '../../proyecto.service';
+import { ESTADO_PROYECTO_UI, EstadoProyecto, Proyecto, ProyectoFiltro, ProyectoGuardar } from '../../proyecto.model';
 import {
   ProyectoFormularioComponent,
   ProyectoFormularioDatos
 } from '../../components/proyecto-formulario/proyecto-formulario.component';
 
 /**
- * Listado de proyectos: búsqueda por nombre, tabla paginada y acciones
- * (ver tareas, editar, eliminar).
+ * Listado de proyectos: búsqueda por nombre, tabla con paginación en el servidor
+ * y acciones (ver tareas, crear, editar, eliminar) contra la API.
  *
- * TEMPORAL (tarea 3): trabaja con datos de ejemplo en memoria. La paginación y el
- * filtro se simulan aquí con la misma forma de respuesta que la API (PagedResult),
- * para que al conectar ProyectoService (tarea 6) solo cambie el origen de los datos.
+ * Flujo de datos:
+ *   filtros y página (signals) → consulta (computed) → GET /api/proyectos → resultado (signal)
+ * Cada cambio en la consulta hace una petición nueva; switchMap cancela la anterior
+ * si todavía no respondió, así nunca se muestra una respuesta vieja.
  */
 @Component({
   selector: 'app-proyectos-lista',
@@ -48,19 +52,24 @@ import {
     MatIconModule,
     MatInputModule,
     MatPaginatorModule,
+    MatProgressBarModule,
     MatTableModule,
     MatTooltipModule,
     BadgeComponent,
+    CargandoComponent,
+    EstadoErrorComponent,
     EstadoVacioComponent
   ],
   templateUrl: './proyectos-lista.component.html',
   styleUrl: './proyectos-lista.component.scss'
 })
 export class ProyectosListaComponent {
+  private readonly servicio = inject(ProyectoService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly store = inject(ProyectosListadoStore);
   private readonly confirmacion = inject(ConfirmacionService);
   private readonly notificacion = inject(NotificacionService);
@@ -73,13 +82,11 @@ export class ProyectosListaComponent {
   private readonly parametrosIniciales = this.route.snapshot.queryParamMap;
   private readonly nombreInicial = this.parametrosIniciales.get('nombre')?.trim() ?? '';
 
-  // ----- Estado de la pantalla (signals)
-  /** TEMPORAL: se trabaja sobre el arreglo de ejemplo para que los cambios se mantengan al navegar. */
-  private readonly proyectos = signal<Proyecto[]>([...PROYECTOS_MOCK]);
+  // ----- Filtros y paginación (signals)
   readonly pagina = signal(leerPagina(this.parametrosIniciales)); // índice base 0 (paginador de Material)
   readonly tamanioPagina = signal(leerTamanio(this.parametrosIniciales, this.opcionesTamanio, this.tamanioPorDefecto));
 
-  /** Campo de búsqueda. Espera 300 ms sin escribir antes de filtrar (debounce). */
+  /** Campo de búsqueda. Espera 300 ms sin escribir antes de consultar (debounce). */
   readonly busqueda = new FormControl(this.nombreInicial, { nonNullable: true });
   readonly filtroNombre = toSignal(
     this.busqueda.valueChanges.pipe(
@@ -91,28 +98,63 @@ export class ProyectosListaComponent {
     { initialValue: this.nombreInicial }
   );
 
-  /** Resultado con la misma forma que devuelve GET /api/proyectos. */
-  readonly resultado = computed<PagedResult<Proyecto>>(() => {
-    const filtro = this.filtroNombre().toLowerCase();
-    const filtrados = this.proyectos()
-      .filter(p => p.nombre.toLowerCase().includes(filtro))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es') || a.id - b.id);
+  /** Se incrementa para volver a pedir la misma página (tras guardar, eliminar o reintentar). */
+  private readonly recarga = signal(0);
 
-    const tamanio = this.tamanioPagina();
-    const totalPaginas = Math.ceil(filtrados.length / tamanio);
-    // Si la página guardada ya no existe (ej. se eliminaron proyectos), se usa la última.
-    const pagina = Math.min(this.pagina(), Math.max(0, totalPaginas - 1));
-    const inicio = pagina * tamanio;
+  /** Parámetros de GET /api/proyectos. La API numera las páginas desde 1. */
+  private readonly consulta = computed<ProyectoFiltro>(() => {
+    this.recarga();
     return {
-      items: filtrados.slice(inicio, inicio + tamanio),
-      page: pagina + 1,
-      pageSize: tamanio,
-      totalCount: filtrados.length,
-      totalPages: totalPaginas
+      nombre: this.filtroNombre(),
+      page: this.pagina() + 1,
+      pageSize: this.tamanioPagina()
     };
   });
 
+  // ----- Respuesta de la API
+  /** Última respuesta recibida. `null` solo antes de la primera carga. */
+  readonly resultado = signal<PagedResult<Proyecto> | null>(null);
+  readonly cargando = signal(false);
+  readonly error = signal<string | null>(null);
+
+  private readonly solicitudes = new Subject<ProyectoFiltro>();
+
   constructor() {
+    this.solicitudes
+      .pipe(
+        tap(() => {
+          this.cargando.set(true);
+          this.error.set(null);
+        }),
+        switchMap(consulta =>
+          this.servicio.listar(consulta).pipe(
+            catchError(error => {
+              this.error.set(mensajeDeError(error));
+              return of(null);
+            })
+          )
+        ),
+        takeUntilDestroyed()
+      )
+      .subscribe(respuesta => {
+        this.cargando.set(false);
+        if (!respuesta) return;
+
+        // La página pedida ya no existe (ej. se eliminó el último proyecto de la última página):
+        // se pide la última página disponible.
+        if (respuesta.items.length === 0 && respuesta.totalPages > 0 && respuesta.page > respuesta.totalPages) {
+          this.pagina.set(respuesta.totalPages - 1);
+          return;
+        }
+        this.resultado.set(respuesta);
+      });
+
+    // Cada cambio en la consulta dispara una petición.
+    effect(() => {
+      const consulta = this.consulta();
+      untracked(() => this.solicitudes.next(consulta));
+    }, { allowSignalWrites: true });
+
     // Cada cambio de filtro o paginación se refleja en la URL y se guarda en el store.
     // Se usa Location.replaceState (no router.navigate) para no disparar una navegación
     // ni la animación de página en cada tecla, y para no llenar el historial.
@@ -128,8 +170,6 @@ export class ProyectosListaComponent {
     }, { allowSignalWrites: true });
   }
 
-  readonly hayProyectos = computed(() => this.proyectos().length > 0);
-
   /**
    * Texto y color del estado. Se usa un método tipado porque dentro de la tabla
    * (matCellDef) la fila llega como `any` y el compilador estricto no permite
@@ -141,6 +181,10 @@ export class ProyectosListaComponent {
 
   /** Identidad de cada fila: Angular reutiliza las filas existentes al actualizar la lista. */
   readonly trackById = (_: number, proyecto: Proyecto) => proyecto.id;
+
+  recargar(): void {
+    this.recarga.update(n => n + 1);
+  }
 
   cambiarPagina(evento: PageEvent): void {
     this.pagina.set(evento.pageIndex);
@@ -162,29 +206,38 @@ export class ProyectosListaComponent {
     }
   }
 
+  // ----- Acciones. Tras cada operación correcta se vuelve a pedir la página actual,
+  // así la tabla muestra el orden, el total y la paginación que calcula el servidor.
   crear(): void {
-    this.abrirFormulario().subscribe(datos => {
-      if (!datos) return;
-      const nuevo: Proyecto = {
-        ...datos,
-        id: Math.max(0, ...this.proyectos().map(p => p.id)) + 1,
-        fechaCreacion: new Date().toISOString(),
-        fechaActualizacion: null
-      };
-      PROYECTOS_MOCK.push(nuevo); // TEMPORAL: persiste al navegar mientras no hay API
-      this.proyectos.set([...PROYECTOS_MOCK]);
-      this.notificacion.exito(`Proyecto "${nuevo.nombre}" creado.`);
-    });
+    this.abrirFormulario()
+      .pipe(
+        filter((datos): datos is ProyectoGuardar => !!datos),
+        switchMap(datos => this.servicio.crear(datos)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: creado => {
+          this.notificacion.exito(`Proyecto "${creado.nombre}" creado.`);
+          this.recargar();
+        },
+        error: error => this.notificacion.error(mensajeDeError(error))
+      });
   }
 
   editar(proyecto: Proyecto): void {
-    this.abrirFormulario(proyecto).subscribe(datos => {
-      if (!datos) return;
-      const indice = PROYECTOS_MOCK.findIndex(p => p.id === proyecto.id);
-      PROYECTOS_MOCK[indice] = { ...proyecto, ...datos, fechaActualizacion: new Date().toISOString() };
-      this.proyectos.set([...PROYECTOS_MOCK]);
-      this.notificacion.exito(`Proyecto "${datos.nombre}" actualizado.`);
-    });
+    this.abrirFormulario(proyecto)
+      .pipe(
+        filter((datos): datos is ProyectoGuardar => !!datos),
+        switchMap(datos => this.servicio.actualizar(proyecto.id, datos)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: actualizado => {
+          this.notificacion.exito(`Proyecto "${actualizado.nombre}" actualizado.`);
+          this.recargar();
+        },
+        error: error => this.notificacion.error(mensajeDeError(error))
+      });
   }
 
   eliminar(proyecto: Proyecto): void {
@@ -195,22 +248,18 @@ export class ProyectosListaComponent {
         textoConfirmar: 'Eliminar',
         peligro: true
       })
-      .subscribe(confirmado => {
-        if (!confirmado) return;
-
-        // Simula la regla del backend (HTTP 409) mientras no hay API.
-        if (TAREAS_MOCK.some(t => t.proyectoId === proyecto.id)) {
-          this.notificacion.error(
-            'No se puede eliminar el proyecto porque tiene tareas asociadas. ' +
-            'Elimine primero sus tareas o cambie el estado del proyecto a Cancelado.'
-          );
-          return;
-        }
-
-        PROYECTOS_MOCK.splice(PROYECTOS_MOCK.findIndex(p => p.id === proyecto.id), 1);
-        this.proyectos.set([...PROYECTOS_MOCK]);
-        this.ajustarPaginaTrasEliminar();
-        this.notificacion.exito(`Proyecto "${proyecto.nombre}" eliminado.`);
+      .pipe(
+        filter(Boolean),
+        switchMap(() => this.servicio.eliminar(proyecto.id)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => {
+          this.notificacion.exito(`Proyecto "${proyecto.nombre}" eliminado.`);
+          this.recargar();
+        },
+        // Si el proyecto tiene tareas, la API responde 409 y su mensaje se muestra tal cual.
+        error: error => this.notificacion.error(mensajeDeError(error))
       });
   }
 
@@ -221,10 +270,5 @@ export class ProyectosListaComponent {
         { data: { proyecto }, width: '560px', maxWidth: '95vw' }
       )
       .afterClosed();
-  }
-
-  /** Si se eliminó el último elemento de la página, retrocede una página. */
-  private ajustarPaginaTrasEliminar(): void {
-    this.pagina.set(this.resultado().page - 1);
   }
 }

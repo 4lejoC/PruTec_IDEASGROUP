@@ -74,7 +74,25 @@
 
 // ----- Panel del listado y herramientas (búsqueda, filtros, total)
 .listado {
+  position: relative; // referencia para la barra de progreso
   padding: var(--space-4) var(--space-4) var(--space-2);
+
+  // Barra fina en el borde superior mientras se recarga (cambio de página, filtro o tras guardar).
+  &__progreso {
+    position: absolute;
+    top: 0;
+    left: var(--radius-lg);
+    right: var(--radius-lg);
+  }
+
+  // Mientras llega la respuesta, la tabla anterior queda atenuada en lugar de desaparecer.
+  .tabla {
+    transition: opacity var(--transition-base);
+  }
+
+  &--recargando .tabla {
+    opacity: 0.55;
+  }
 }
 
 .filtros {

@@ -11,3 +11,12 @@ export class ApiError {
     public readonly errores: Record<string, string[]> = {}
   ) {}
 }
+
+/**
+ * Mensaje para mostrar al usuario a partir de cualquier error.
+ * Los errores HTTP ya llegan como ApiError gracias al interceptor; cualquier otro
+ * caso (un error de programación, por ejemplo) muestra un mensaje genérico.
+ */
+export function mensajeDeError(error: unknown): string {
+  return error instanceof ApiError ? error.mensaje : 'Ocurrió un error inesperado. Intente nuevamente.';
+}
