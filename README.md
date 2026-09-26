@@ -130,6 +130,9 @@ docker compose ps        # esperar el estado "healthy"
 
 Esto crea un PostgreSQL 16 **vacío** (base `gestion_tareas`). Las tablas se crean en el paso siguiente.
 
+El contenedor debe estar en ejecución siempre que se use la aplicación. Si se reinicia el equipo o se
+cierra Docker Desktop, basta con volver a ejecutar `docker compose up -d` (los datos se conservan en el volumen).
+
 ### 4. Construir la base de datos con las migraciones
 
 Las migraciones se aplican de forma **explícita** (no al iniciar la API). Elegir una opción:
@@ -194,6 +197,15 @@ docker compose down -v   # elimina el contenedor y los datos
 docker compose up -d
 # volver a aplicar las migraciones (paso 4)
 ```
+
+### Problemas frecuentes
+
+| Síntoma | Causa probable | Solución |
+|---|---|---|
+| La aplicación muestra *"No se pudo conectar con el servidor"* | La API no está en ejecución o el puerto no coincide con `NG_APP_API_URL` | Ejecutar el backend (paso 5) y revisar `FrontEnd/.env` |
+| La aplicación muestra *"Ocurrió un error inesperado"* (HTTP 500) | El contenedor de PostgreSQL está detenido (por ejemplo, tras reiniciar el equipo o cerrar Docker Desktop) | Iniciar Docker Desktop y ejecutar `docker compose up -d`. El detalle del error se registra en la consola de la API |
+| Error `relation "proyecto" does not exist` en la consola de la API | La base de datos está vacía (volumen recreado) | Aplicar las migraciones (paso 4) |
+| Error de CORS en la consola del navegador | El origen del frontend no está en `Cors__AllowedOrigins` | Agregarlo en el `.env` de la raíz y reiniciar la API |
 
 ---
 
@@ -376,6 +388,13 @@ Los errores de validación (400) incluyen además un diccionario `errors` con lo
   Los componentes no usan `HttpClient` directamente.
 - **Interceptor de errores:** convierte cualquier error HTTP (ProblemDetails del backend, errores de validación
   o servidor caído) en un `ApiError` con un mensaje listo para mostrar. Los componentes no interpretan códigos HTTP.
+- **Paginación y filtros en el servidor:** los filtros y la página son *signals*; al cambiar cualquiera se arma
+  la consulta y se pide a la API. `switchMap` cancela la petición anterior si todavía no respondió, así nunca
+  se muestra una respuesta desactualizada (por ejemplo, al escribir rápido en el buscador).
+- **Estados de carga y error:** la primera carga muestra filas de esqueleto; las recargas (cambio de página,
+  filtro o tras guardar) muestran una barra de progreso y atenúan la tabla anterior en lugar de vaciarla.
+  Si la API falla, se muestra el mensaje con un botón para reintentar. Tras crear, editar o eliminar se vuelve
+  a pedir la página actual, para que el orden y los totales sean los que calcula el servidor.
 - **Modelos tipados** que reflejan los DTOs del backend; estados y prioridades como tipos literales
   (`'EnCurso' | 'Pausado' ...`), así TypeScript detecta valores inválidos.
 - **Configuración por `.env`** con `@ngx-env/builder`, para usar el mismo mecanismo que el backend.
