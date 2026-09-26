@@ -31,21 +31,23 @@
         </app-estado-vacio>
       } @else {
         <!-- Barra de búsqueda -->
-        <div class="filtros filtros__fila">
-          <mat-form-field class="buscador" subscriptSizing="dynamic">
-            <mat-icon matIconPrefix>search</mat-icon>
-            <mat-label>Buscar por nombre</mat-label>
-            <input matInput [formControl]="busqueda" autocomplete="off" />
-            @if (busqueda.value) {
-              <button mat-icon-button matIconSuffix (click)="limpiarBusqueda()" aria-label="Limpiar búsqueda">
-                <mat-icon>close</mat-icon>
-              </button>
-            }
-          </mat-form-field>
+        <div class="filtros">
+          <div class="filtros__fila">
+            <mat-form-field class="buscador" subscriptSizing="dynamic">
+              <mat-icon matIconPrefix>search</mat-icon>
+              <mat-label>Buscar por nombre</mat-label>
+              <input matInput [formControl]="busqueda" autocomplete="off" />
+              @if (busqueda.value) {
+                <button mat-icon-button matIconSuffix (click)="limpiarBusqueda()" aria-label="Limpiar búsqueda">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </mat-form-field>
 
-          <span class="filtros__total">
-            {{ r.totalCount }} {{ r.totalCount === 1 ? 'proyecto' : 'proyectos' }}
-          </span>
+            <span class="filtros__total">
+              {{ r.totalCount }} {{ r.totalCount === 1 ? 'proyecto' : 'proyectos' }}
+            </span>
+          </div>
         </div>
 
         @if (r.totalCount === 0) {
