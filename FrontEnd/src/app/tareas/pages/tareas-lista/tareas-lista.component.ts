@@ -19,6 +19,7 @@ import { CargandoComponent } from '../../../shared/components/cargando/cargando.
 import { EstadoErrorComponent } from '../../../shared/components/estado-error/estado-error.component';
 import { EstadoVacioComponent } from '../../../shared/components/estado-vacio/estado-vacio.component';
 import { ApiError, mensajeDeError } from '../../../shared/api-error.model';
+import { guardarArchivo } from '../../../shared/archivo.util';
 import { ConfirmacionService } from '../../../shared/confirmacion.service';
 import { NotificacionService } from '../../../shared/notificacion.service';
 import { PagedResult } from '../../../shared/paged-result.model';
@@ -112,6 +113,8 @@ export class TareasListaComponent {
   /** 'cargando' | 'listo' | 'no-encontrado' (404) | 'error' (cualquier otro fallo). */
   readonly estadoProyecto = signal<'cargando' | 'listo' | 'no-encontrado' | 'error'>('cargando');
   readonly errorProyecto = signal<string | null>(null);
+  /** Evita pedir el reporte dos veces mientras se genera. */
+  readonly generandoReporte = signal(false);
 
   // ----- Filtros y paginación
   readonly busqueda = new FormControl(this.textoInicial, { nonNullable: true });
@@ -272,6 +275,27 @@ export class TareasListaComponent {
   cambiarPagina(evento: PageEvent): void {
     this.pagina.set(evento.pageIndex);
     this.tamanioPagina.set(evento.pageSize);
+  }
+
+  /** Descarga el reporte PDF del proyecto (todas sus tareas, no solo la página visible). */
+  descargarReporte(): void {
+    const proyecto = this.proyecto();
+    if (!proyecto || this.generandoReporte()) return;
+
+    this.generandoReporte.set(true);
+    this.proyectoService
+      .descargarReporte(proyecto.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: archivo => {
+          guardarArchivo(archivo.contenido, archivo.nombre);
+          this.generandoReporte.set(false);
+        },
+        error: error => {
+          this.notificacion.error(mensajeDeError(error));
+          this.generandoReporte.set(false);
+        }
+      });
   }
 
   // ----- Acciones. Tras cada operación correcta se vuelve a pedir la página actual.

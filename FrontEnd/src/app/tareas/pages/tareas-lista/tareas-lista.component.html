@@ -22,10 +22,19 @@
   </div>
 
   @if (estadoProyecto() === 'listo') {
-    <button mat-flat-button color="primary" (click)="crear()">
-      <mat-icon>add</mat-icon>
-      Nueva tarea
-    </button>
+    <div class="cabecera__acciones">
+      <button mat-stroked-button color="primary" (click)="descargarReporte()" [disabled]="generandoReporte()"
+        matTooltip="Proyecto y todas sus tareas">
+        <!-- El <mat-icon> siempre está presente (hijo directo del botón) para que Material lo alinee
+             con el texto; mientras se genera solo cambia el ícono y gira. -->
+        <mat-icon [class.girando]="generandoReporte()">{{ generandoReporte() ? 'autorenew' : 'picture_as_pdf' }}</mat-icon>
+        {{ generandoReporte() ? 'Generando…' : 'Reporte PDF' }}
+      </button>
+      <button mat-flat-button color="primary" (click)="crear()">
+        <mat-icon>add</mat-icon>
+        Nueva tarea
+      </button>
+    </div>
   }
 </section>
 

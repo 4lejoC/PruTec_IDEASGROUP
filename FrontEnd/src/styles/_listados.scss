@@ -19,7 +19,9 @@
     gap: var(--space-2);
   }
 
-  &__titulo {
+  // `.cabecera &__titulo` sube la especificidad: la clase mat-typography de Material
+  // agrega margin-bottom a todos los h1 y desalineaba el título respecto de los botones.
+  .cabecera &__titulo {
     margin: 0;
     font-size: 2rem;
     font-weight: 800;
@@ -70,6 +72,22 @@
   transition: transform var(--transition-fast);
 
   &:hover { transform: translateX(-3px); }
+}
+
+// Grupo de botones de la cabecera (ej. "Reporte PDF" + "Nueva tarea")
+.cabecera__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+// Ícono girando mientras se espera una respuesta (ej. "Generando…" del reporte PDF)
+.girando {
+  animation: girar-continuo 1s linear infinite;
+}
+
+@keyframes girar-continuo {
+  to { transform: rotate(360deg); }
 }
 
 // ----- Panel del listado y herramientas (búsqueda, filtros, total)
