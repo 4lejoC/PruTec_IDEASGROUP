@@ -7,10 +7,11 @@
 
 <header class="toolbar">
   <div class="toolbar__contenido">
-    <a class="marca" routerLink="/">
-      <span class="marca__logo" aria-hidden="true">
-        <mat-icon>task_alt</mat-icon>
-      </span>
+    <a class="marca" routerLink="/" aria-label="IDEASGROUP · Gestión de Tareas, ir al inicio">
+      <!-- Dos versiones del logo: el texto gris del original no se lee sobre el fondo oscuro -->
+      <img class="marca__logo marca__logo--claro" src="assets/logo-ideasgroup.png" alt="IDEASGROUP" />
+      <img class="marca__logo marca__logo--oscuro" src="assets/logo-ideasgroup-oscuro.png" alt="IDEASGROUP" />
+      <span class="marca__separador" aria-hidden="true"></span>
       <span class="marca__texto">{{ titulo }}</span>
     </a>
 
