@@ -1,10 +1,10 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { API_URL } from '../shared/api.config';
-import { PagedResult } from '../shared/paged-result.model';
-import { Proyecto } from './proyecto.model';
-import { ProyectoService } from './proyecto.service';
+import { API_URL } from '../app/shared/api.config';
+import { PagedResult } from '../app/shared/paged-result.model';
+import { Proyecto } from '../app/proyectos/proyecto.model';
+import { ProyectoService } from '../app/proyectos/proyecto.service';
 
 /**
  * HttpTestingController reemplaza al servidor: permite comprobar qué petición

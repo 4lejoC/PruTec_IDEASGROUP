@@ -1,8 +1,8 @@
 import { HttpClient, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { ApiError } from './api-error.model';
-import { convertirError, errorInterceptor } from './error.interceptor';
+import { ApiError } from '../app/shared/api-error.model';
+import { convertirError, errorInterceptor } from '../app/shared/error.interceptor';
 
 describe('errorInterceptor', () => {
   describe('convertirError', () => {

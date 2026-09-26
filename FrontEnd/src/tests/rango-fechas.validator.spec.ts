@@ -1,5 +1,5 @@
 import { FormControl, FormGroup } from '@angular/forms';
-import { rangoFechasValidator } from './rango-fechas.validator';
+import { rangoFechasValidator } from '../app/shared/rango-fechas.validator';
 
 /**
  * El validador replica la regla del backend: la fecha de fin prevista

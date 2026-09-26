@@ -500,6 +500,8 @@ por *mocks* (Moq), por lo que **no requieren base de datos** ni Docker.
 Pruebas unitarias de la lógica que no depende de la interfaz. Las peticiones HTTP se simulan con
 `HttpTestingController`, por lo que **no requieren el backend** en ejecución.
 
+Todas las pruebas están en `FrontEnd/src/tests/`, separadas del código de la aplicación.
+
 **Ejecutar** (desde `FrontEnd/`, con el archivo `.env` creado en el paso 6):
 
 ```bash
