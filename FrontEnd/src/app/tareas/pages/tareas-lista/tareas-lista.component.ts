@@ -1,5 +1,5 @@
-import { Component, Input, computed, effect, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, Input, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe, Location } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -9,16 +9,21 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime, distinctUntilChanged, map, tap } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, filter, map, of, switchMap, tap } from 'rxjs';
 
 import { BadgeComponent, BadgeInfo } from '../../../shared/components/badge/badge.component';
+import { CargandoComponent } from '../../../shared/components/cargando/cargando.component';
+import { EstadoErrorComponent } from '../../../shared/components/estado-error/estado-error.component';
 import { EstadoVacioComponent } from '../../../shared/components/estado-vacio/estado-vacio.component';
+import { ApiError, mensajeDeError } from '../../../shared/api-error.model';
 import { ConfirmacionService } from '../../../shared/confirmacion.service';
 import { NotificacionService } from '../../../shared/notificacion.service';
 import { PagedResult } from '../../../shared/paged-result.model';
-import { PROYECTOS_MOCK } from '../../../proyectos/proyectos.mock';
+import { Proyecto } from '../../../proyectos/proyecto.model';
+import { ProyectoService } from '../../../proyectos/proyecto.service';
 import { ProyectosListadoStore } from '../../../proyectos/proyectos-listado.store';
 import { armarQueryParams, leerOpcion, leerPagina, leerTamanio } from '../../../shared/url-estado.util';
 import {
@@ -29,9 +34,10 @@ import {
   PRIORIDAD_TAREA_UI,
   PrioridadTarea,
   Tarea,
+  TareaFiltro,
   TareaGuardar
 } from '../../tarea.model';
-import { TAREAS_MOCK } from '../../tareas.mock';
+import { TareaService } from '../../tarea.service';
 import {
   TareaFormularioComponent,
   TareaFormularioDatos
@@ -41,10 +47,10 @@ import {
  * Tareas de un proyecto (/proyectos/:proyectoId/tareas): búsqueda por texto,
  * filtros por estado y prioridad, tabla paginada y acciones (editar, eliminar).
  *
- * TEMPORAL (tarea 4): trabaja con datos de ejemplo. Filtros y paginación se simulan
- * aquí con la misma forma de respuesta que la API (PagedResult) y los mismos
- * parámetros (texto, estado, prioridad, page, pageSize); en la tarea 6 se reemplaza
- * el origen de los datos por TareaService.listarPorProyecto().
+ * Se hacen dos consultas independientes:
+ *   - GET /api/proyectos/{id}: nombre del proyecto para las migas (404 → "no encontrado").
+ *   - GET /api/proyectos/{id}/tareas: filtros y paginación en el servidor, con el mismo
+ *     flujo que ProyectosListaComponent (consulta → switchMap → resultado).
  */
 @Component({
   selector: 'app-tareas-lista',
@@ -58,15 +64,21 @@ import {
     MatIconModule,
     MatInputModule,
     MatPaginatorModule,
+    MatProgressBarModule,
     MatTableModule,
     MatTooltipModule,
     BadgeComponent,
+    CargandoComponent,
+    EstadoErrorComponent,
     EstadoVacioComponent
   ],
   templateUrl: './tareas-lista.component.html',
   styleUrl: './tareas-lista.component.scss'
 })
 export class TareasListaComponent {
+  private readonly servicio = inject(TareaService);
+  private readonly proyectoService = inject(ProyectoService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -90,13 +102,16 @@ export class TareasListaComponent {
   /** Código del proyecto, tomado de la ruta gracias a withComponentInputBinding(). */
   @Input() set proyectoId(valor: string) {
     this.idProyecto.set(Number(valor));
+    this.cargarProyecto();
   }
 
   private readonly idProyecto = signal(0);
-  private readonly tareas = signal<Tarea[]>([...TAREAS_MOCK]);
 
-  /** TEMPORAL: al conectar la API se obtendrá con ProyectoService.obtenerPorId(). */
-  readonly proyecto = computed(() => PROYECTOS_MOCK.find(p => p.id === this.idProyecto()) ?? null);
+  // ----- Proyecto (cabecera y migas)
+  readonly proyecto = signal<Proyecto | null>(null);
+  /** 'cargando' | 'listo' | 'no-encontrado' (404) | 'error' (cualquier otro fallo). */
+  readonly estadoProyecto = signal<'cargando' | 'listo' | 'no-encontrado' | 'error'>('cargando');
+  readonly errorProyecto = signal<string | null>(null);
 
   // ----- Filtros y paginación
   readonly busqueda = new FormControl(this.textoInicial, { nonNullable: true });
@@ -116,44 +131,69 @@ export class TareasListaComponent {
 
   readonly hayFiltros = computed(() => !!this.texto() || !!this.estado() || !!this.prioridad());
 
-  /** Todas las tareas del proyecto (sin filtros). */
-  private readonly tareasDelProyecto = computed(() =>
-    this.tareas().filter(t => t.proyectoId === this.idProyecto())
-  );
 
-  readonly proyectoTieneTareas = computed(() => this.tareasDelProyecto().length > 0);
+  /** Se incrementa para volver a pedir la misma página (tras guardar, eliminar o reintentar). */
+  private readonly recarga = signal(0);
 
-  /** Resultado con la misma forma que devuelve GET /api/proyectos/{id}/tareas. */
-  readonly resultado = computed<PagedResult<Tarea>>(() => {
-    const texto = this.texto().toLowerCase();
-    const estado = this.estado();
-    const prioridad = this.prioridad();
-
-    const filtradas = this.tareasDelProyecto()
-      .filter(t =>
-        !texto ||
-        t.titulo.toLowerCase().includes(texto) ||
-        (t.descripcion ?? '').toLowerCase().includes(texto))
-      .filter(t => !estado || t.estado === estado)
-      .filter(t => !prioridad || t.prioridad === prioridad)
-      // Igual que el backend: más recientes primero.
-      .sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion) || b.id - a.id);
-
-    const tamanio = this.tamanioPagina();
-    const totalPaginas = Math.ceil(filtradas.length / tamanio);
-    // Si la página guardada ya no existe (ej. se eliminaron tareas), se usa la última.
-    const pagina = Math.min(this.pagina(), Math.max(0, totalPaginas - 1));
-    const inicio = pagina * tamanio;
+  /** Parámetros de GET /api/proyectos/{id}/tareas. La API numera las páginas desde 1. */
+  private readonly consulta = computed<{ proyectoId: number; filtro: TareaFiltro }>(() => {
+    this.recarga();
     return {
-      items: filtradas.slice(inicio, inicio + tamanio),
-      page: pagina + 1,
-      pageSize: tamanio,
-      totalCount: filtradas.length,
-      totalPages: totalPaginas
+      proyectoId: this.idProyecto(),
+      filtro: {
+        texto: this.texto(),
+        estado: this.estado(),
+        prioridad: this.prioridad(),
+        page: this.pagina() + 1,
+        pageSize: this.tamanioPagina()
+      }
     };
   });
 
+  // ----- Respuesta de la API
+  /** Última respuesta recibida. `null` solo antes de la primera carga. */
+  readonly resultado = signal<PagedResult<Tarea> | null>(null);
+  readonly cargando = signal(false);
+  readonly error = signal<string | null>(null);
+
+  private readonly solicitudes = new Subject<{ proyectoId: number; filtro: TareaFiltro }>();
+
   constructor() {
+    this.solicitudes
+      .pipe(
+        filter(consulta => consulta.proyectoId > 0), // aún no llega el parámetro de la ruta
+        tap(() => {
+          this.cargando.set(true);
+          this.error.set(null);
+        }),
+        switchMap(({ proyectoId, filtro }) =>
+          this.servicio.listarPorProyecto(proyectoId, filtro).pipe(
+            catchError(error => {
+              this.error.set(mensajeDeError(error));
+              return of(null);
+            })
+          )
+        ),
+        takeUntilDestroyed()
+      )
+      .subscribe(respuesta => {
+        this.cargando.set(false);
+        if (!respuesta) return;
+
+        // La página pedida ya no existe (ej. se eliminó la última tarea de la última página).
+        if (respuesta.items.length === 0 && respuesta.totalPages > 0 && respuesta.page > respuesta.totalPages) {
+          this.pagina.set(respuesta.totalPages - 1);
+          return;
+        }
+        this.resultado.set(respuesta);
+      });
+
+    // Cada cambio en la consulta dispara una petición.
+    effect(() => {
+      const consulta = this.consulta();
+      untracked(() => this.solicitudes.next(consulta));
+    }, { allowSignalWrites: true });
+
     // Filtros y paginación se reflejan en la URL (sin navegar ni animar, ver ProyectosListaComponent).
     effect(() => {
       const queryParams = armarQueryParams({
@@ -177,6 +217,37 @@ export class TareasListaComponent {
 
   infoPrioridad(prioridad: PrioridadTarea): BadgeInfo {
     return PRIORIDAD_TAREA_UI[prioridad];
+  }
+
+  /** Reintento desde el panel de error: vuelve a pedir el proyecto y sus tareas. */
+  recargar(): void {
+    if (this.estadoProyecto() === 'error') {
+      this.cargarProyecto();
+    }
+    this.recarga.update(n => n + 1);
+  }
+
+  private cargarProyecto(): void {
+    this.estadoProyecto.set('cargando');
+    this.errorProyecto.set(null);
+    this.proyectoService
+      .obtenerPorId(this.idProyecto())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: proyecto => {
+          this.proyecto.set(proyecto);
+          this.estadoProyecto.set('listo');
+        },
+        error: error => {
+          this.proyecto.set(null);
+          if (error instanceof ApiError && error.status === 404) {
+            this.estadoProyecto.set('no-encontrado');
+          } else {
+            this.estadoProyecto.set('error');
+            this.errorProyecto.set(mensajeDeError(error));
+          }
+        }
+      });
   }
 
   // ----- Filtros
@@ -203,31 +274,37 @@ export class TareasListaComponent {
     this.tamanioPagina.set(evento.pageSize);
   }
 
-  // ----- Acciones
+  // ----- Acciones. Tras cada operación correcta se vuelve a pedir la página actual.
   crear(): void {
-    this.abrirFormulario().subscribe(datos => {
-      if (!datos) return;
-      const nueva: Tarea = {
-        ...datos,
-        id: Math.max(0, ...TAREAS_MOCK.map(t => t.id)) + 1,
-        proyectoId: this.idProyecto(),
-        fechaCreacion: new Date().toISOString(),
-        fechaActualizacion: null
-      };
-      TAREAS_MOCK.push(nueva); // TEMPORAL: mantiene coherente la regla de eliminar proyectos
-      this.tareas.set([...TAREAS_MOCK]);
-      this.notificacion.exito(`Tarea "${nueva.titulo}" creada.`);
-    });
+    this.abrirFormulario()
+      .pipe(
+        filter((datos): datos is TareaGuardar => !!datos),
+        switchMap(datos => this.servicio.crear(this.idProyecto(), datos)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: creada => {
+          this.notificacion.exito(`Tarea "${creada.titulo}" creada.`);
+          this.recarga.update(n => n + 1);
+        },
+        error: error => this.notificacion.error(mensajeDeError(error))
+      });
   }
 
   editar(tarea: Tarea): void {
-    this.abrirFormulario(tarea).subscribe(datos => {
-      if (!datos) return;
-      const indice = TAREAS_MOCK.findIndex(t => t.id === tarea.id);
-      TAREAS_MOCK[indice] = { ...tarea, ...datos, fechaActualizacion: new Date().toISOString() };
-      this.tareas.set([...TAREAS_MOCK]);
-      this.notificacion.exito(`Tarea "${datos.titulo}" actualizada.`);
-    });
+    this.abrirFormulario(tarea)
+      .pipe(
+        filter((datos): datos is TareaGuardar => !!datos),
+        switchMap(datos => this.servicio.actualizar(tarea.id, datos)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: actualizada => {
+          this.notificacion.exito(`Tarea "${actualizada.titulo}" actualizada.`);
+          this.recarga.update(n => n + 1);
+        },
+        error: error => this.notificacion.error(mensajeDeError(error))
+      });
   }
 
   eliminar(tarea: Tarea): void {
@@ -238,12 +315,17 @@ export class TareasListaComponent {
         textoConfirmar: 'Eliminar',
         peligro: true
       })
-      .subscribe(confirmado => {
-        if (!confirmado) return;
-        TAREAS_MOCK.splice(TAREAS_MOCK.findIndex(t => t.id === tarea.id), 1);
-        this.tareas.set([...TAREAS_MOCK]);
-        this.pagina.set(this.resultado().page - 1);
-        this.notificacion.exito(`Tarea "${tarea.titulo}" eliminada.`);
+      .pipe(
+        filter(Boolean),
+        switchMap(() => this.servicio.eliminar(tarea.id)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => {
+          this.notificacion.exito(`Tarea "${tarea.titulo}" eliminada.`);
+          this.recarga.update(n => n + 1);
+        },
+        error: error => this.notificacion.error(mensajeDeError(error))
       });
   }
 
